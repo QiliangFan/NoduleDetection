@@ -1,0 +1,12 @@
+{
+  "ct_root": "/home/maling/fanqiliang/lung16/LUNG16",
+  "csv_file": "/home/maling/fanqiliang/lung16/CSVFILES/annotations.csv",
+  "sid_file": "/home/maling/fanqiliang/lung16/CSVFILES/seriesuids.csv",
+  "seg_root": "/home/maling/fanqiliang/lung16/seg-lungs-LUNA16",
+  "dst_root": "/home/maling/fanqiliang/data/processed_luna16",
+  "dst_ct_root": "/home/maling/fanqiliang/data/processed_luna16/ct",
+  "dst_nodule_root": "/home/maling/fanqiliang/data/processed_luna16/nodule",
+  "dst_size_root": "/home/maling/fanqiliang/data/processed_luna16/size",
+  "weight_root": "/home/maling/fanqiliang/data/processed_luna16/weight",
+  "dst_seg_root": "/home/maling/fanqiliang/data/processed_luna16/seg"
+}
