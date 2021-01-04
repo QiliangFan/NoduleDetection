@@ -42,6 +42,9 @@ class Luna16Dataset(Dataset):
         sz = torch.as_tensor(sz, dtype=torch.float32)
         weight = torch.as_tensor(weight, dtype=torch.float32)
         idx = torch.where(seg == 1)
+
+        # patch
+        
         z_max, z_min = torch.max(idx[0]), torch.min(idx[0])
         y_max, y_min = torch.max(idx[1]), torch.min(idx[1])
         x_max, x_min = torch.max(idx[2]), torch.min(idx[2])
@@ -50,6 +53,9 @@ class Luna16Dataset(Dataset):
         nodule = nodule[z_min:z_max, y_min:y_max, x_min:x_max]
         sz = sz[:, z_min:z_max, y_min:y_max, x_min:x_max]
         weight = weight[z_min:z_max, y_min:y_max, x_min:x_max]
+        
+        ct *= seg 
+
         return ct, seg, nodule, sz, weight
 
     def __len__(self):

@@ -7,7 +7,7 @@ from multi_task import MultiTask
 
 
 def main():
-    multi_task.cross_validation(test=False, evaluate=False)
+    multi_task.cross_validation(test=False, evaluate=True)
 
 
 if __name__ == "__main__":

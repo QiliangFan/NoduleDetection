@@ -14,6 +14,7 @@ def make_conv3d(inplane:int, plane:int, activation=True):
             nn.Conv3d(inplane, plane, (3, 3, 3), stride=1, padding=1),
             nn.InstanceNorm3d(plane),
             nn.ReLU(),
+            nn.Dropout3d(0.4)
         )
     else:
         return nn.Sequential(
@@ -57,16 +58,8 @@ class CenterLoss(nn.Module):
         self.beta = 4
 
     def forward(self, weight: Tensor, score: Tensor, nodule: Tensor) -> Tensor:
-        non_center_idx = torch.where(nodule == 0)
-        center_idx = torch.where(nodule == 1)
-
-        score_center = torch.as_tensor(score[center_idx] if center_idx[0].numel() else 0)
-
-        nodule_loss = torch.mean((1 - score_center)**self.alpha * torch.log(score_center + 1e-6))
-        non_nodule_loss = torch.mean((1-weight[non_center_idx])**self.beta *
-                                     score[non_center_idx]**self.beta * torch.log(1 - score[non_center_idx]))
-        nodule_loss, non_nodule_loss = nodule_loss.to(score.device), non_nodule_loss.to(score.device)
-        loss = -1 * torch.mean(nodule_loss + non_nodule_loss)
+        loss = -1 * torch.mean(nodule * (1 - score)**self.alpha * torch.log(score + 1e-6) + 
+                          (1 - nodule) * (1-weight)**self.beta * score**self.beta * torch.log(1 - score + 1e-6))
         loss = loss.to(score.device)
         return loss
 
