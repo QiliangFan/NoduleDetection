@@ -4,10 +4,11 @@ This script is used for FP reduction
 balance: 50 epochs
 imbalance: 100 epochs
 """
+from datetime import datetime
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 # os.environ["CUDA_LAUNCH_BLOCKING"]="1"  # synchroniz
 import json
 from network.meter import AverageMeter
@@ -24,6 +25,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from torch.utils.tensorboard.writer import SummaryWriter
+from torch.cuda.amp import autocast, GradScaler
 
 
 # parameter
@@ -31,16 +33,18 @@ batch_size = 32  # was 32
 # UNI_SIGN = "normal"
 # UNI_SIGN = "deeper"  # represent for each network
 # UNI_SIGN = "deeper_plus_plus"
-# UNI_SIGN = "deeper_ppp"
+UNI_SIGN = "deeper_ppp"
+# UNI_SIGN = "original_1"
 # UNI_SIGN = "imbalance"
 # UNI_SIGN = "bottleneck"
-UNI_SIGN = "None"
+# UNI_SIGN = "None"
 
-def save_output(arr, pred, label, save_dir):
+def save_output(arr, pred, label, save_dir, k):
     for i, data in enumerate(arr):
         plt.figure()
         plt.imshow(data, cmap="bone")
-        plt.savefig(os.path.join(save_dir, f"{label}_{pred}_{i}.png"), bbox_inches="tight")
+        plt.savefig(os.path.join(save_dir, f"{k}_label{label}_pred{pred}_{i}.png"), bbox_inches="tight")
+        plt.axis("off")
         plt.close()
 
 
@@ -95,7 +99,16 @@ def main(train=True, epochs=10):
                     patch, label = patch.cuda(), label.cuda()
                 patch.unsqueeze_(dim=1)
                 # print(patch.shape, label.shape, label)
-                output = model(patch)
+                with autocast(enabled=False):
+                    output = model(patch, True)
+                    loss = criterion(output, label)
+
+                optimizer.zero_grad()
+                scaler.scale(loss).backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
+                scaler.step(optimizer)
+                scaler.update()
+                # optimizer.step()
 
                 # metric
                 with torch.no_grad():
@@ -117,25 +130,22 @@ def main(train=True, epochs=10):
                     recall = tp_meter.sum / (tp_meter.sum + fn_meter.sum + 1e-6)
                     precision_meter.update(precision)
                     recall_meter.update(recall)
-                loss = criterion(output, label)
-                with torch.no_grad():
                     loss_val = loss.cpu().detach().item()
                     loss_meter.update(loss_val)
                     _tqdm.set_postfix(loss=loss_val, precision=precision, recall=recall, acc=acc_meter.avg)
-                    writer.add_scalar("loss", loss, global_step=i)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                    if writer:
+                        writer.add_scalar("loss", loss, global_step=i)
 
                 del output, loss, patch, label
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
             # meter
-            writer.add_scalars("train_metrics", tag_scalar_dict={
-                        "precision": precision_meter.val,
-                        "recall": recall_meter.val,
-                        "acc": acc_meter.avg
-                    }, global_step=ep)                    
+            if writer:
+                writer.add_scalars("train_metrics", tag_scalar_dict={
+                            "precision": precision_meter.val,
+                            "recall": recall_meter.val,
+                            "acc": acc_meter.avg
+                        }, global_step=ep)                    
             precision_meter.add_record(precision_meter.val)
             recall_meter.add_record(recall_meter.val)
             acc_meter.add_record()
@@ -173,6 +183,8 @@ def main(train=True, epochs=10):
     model.eval()
     with torch.no_grad():
         _tqdm = tqdm(test_data, total=len(test_data))
+        t = 0
+
         for patch, label in _tqdm:
             if torch.cuda.is_available():
                 patch, label = patch.cuda(), label.cuda()
@@ -180,7 +192,10 @@ def main(train=True, epochs=10):
             output = model(patch)
 
             # metric
-            for out, target in zip(output.cpu(), label.cpu()):
+            for i, (out, target) in enumerate(zip(output.cpu(), label.cpu())):
+                if target == 0 and torch.argmax(out.cpu()) == 1:
+                    save_output(patch[i].cpu().squeeze(), torch.argmax(out.cpu()), target.cpu(), os.path.join(project_path, "img"), t)
+                    t += 1
                 cls = torch.argmax(out)
                 if cls == target:
                     acc_meter.update(1)
@@ -221,32 +236,37 @@ if __name__ == "__main__":
     candidate_file = config["candidate_file"]
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{UNI_SIGN}_resnet.pk")
     result_dir = os.path.join(project_path, "result")
-    log_dir = os.path.join(project_path, "log", "resnetsss")
+    log_dir = os.path.join(project_path, "log", f"resnet_{UNI_SIGN}_{datetime.now():%Y%m%d_%H%M%S}")
 
     patch_data = Data(patch_root=candidate_patch_root, candidate_csv=candidate_file)
     data_len = len(patch_data)
     train_data, test_data = torch.utils.data.random_split(patch_data, [data_len-data_len//10, data_len//10])
     # train_data, test_data = torch.utils.data.random_split(patch_data, [data_len//10, data_len-data_len//10])
 
-
     train_data = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=2)
-    test_data = DataLoader(test_data, batch_size=1, shuffle=True, num_workers=2)
+    test_data = DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=2)
     
-
     model = ResNet3D()
-    writer = SummaryWriter(log_dir=log_dir)
-    rand_input = torch.rand((1, 1, 32, 32, 32))
-    writer.add_graph(model, input_to_model=rand_input)
+    scaler = GradScaler()
 
+    # writer = SummaryWriter(log_dir=log_dir)
+    writer = None
+    rand_input = torch.rand((1, 1, 32, 32, 32))
+    # writer.add_graph(model, input_to_model=rand_input)
+
+    weight = torch.as_tensor([0.2, 0.8]).half()
     if torch.cuda.is_available():
         model.cuda()
+        weight = weight.cuda()
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path))
-    criterion = nn.CrossEntropyLoss()
+    
+    criterion = nn.CrossEntropyLoss(weight)
     # optimizer = optim.SGD(model.parameters(), lr=0.05, momentum=0.4, weight_decay=1e-4)    
-    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.2, weight_decay=1e-8)    
-    # optimizer = optim.Adam(model.parameters(), lr=0.002, weight_decay=1e-4)
+    # optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.4, weight_decay=1e-8)    # ppp
+    # optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.2, weight_decay=1e-8)    
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-8)
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, 0.25)
 
-    main(train=True, epochs=200)
+    main(train=False, epochs=75)
 

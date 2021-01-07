@@ -47,7 +47,6 @@ class Unet3D(nn.Module):
         self.down_layer5 = make_layer3d(channels[4], channels[5], down_sample=True)
         self.down_layer6 = make_layer3d(channels[5], channels[5], down_sample=True)
 
-
         # decoder
         self.up_conv1 = make_transconv3d(channels[5], channels[5])
         self.up_layer1 = make_layer3d(channels[5]*2, channels[4])

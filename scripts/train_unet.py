@@ -20,6 +20,7 @@ import SimpleITK as sitk
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from torch.utils.tensorboard.writer import SummaryWriter
 
 
 # parameter
@@ -159,6 +160,8 @@ def main(ct_root, nodule_root, epochs=1, train=True):
             last_z_idx = 0
             ct_list = []
             nodule_list = []
+
+            # make 32 slice with nodule
             for idx in nodule_idx:
                 if idx - 16 >= z_min and idx + 15 <= z_max and idx > last_z_idx:
                     ct = CT[0, idx-16:idx+16]
@@ -195,6 +198,7 @@ if __name__ == "__main__":
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, 0.9)
     # criterion = nn.CrossEntropyLoss()
 
+    writer = SummaryWriter
     dir_path = os.path.dirname(os.path.abspath(__file__))
     img_save_path = os.path.join(project_path, "img")
 
@@ -202,4 +206,4 @@ if __name__ == "__main__":
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path))
 
-    main(config["dst_ct_root"], config["dst_nodule_root"], train=True, epochs=200)
+    main(config["dst_ct_root"], config["dst_nodule_root"], train=False, epochs=200)
