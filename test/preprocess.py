@@ -12,6 +12,7 @@ import pandas as pd
 dst_root = "/home/maling/fanqiliang/data/tmp"
 dst_ct_root = os.path.join(dst_root, "ct")
 patch_root = "/home/maling/fanqiliang/data/tmp/patch"   # patched root 
+# patch_root = "/home/maling/fanqiliang/data/mask"
 aug_patch_root = "/home/maling/fanqiliang/data/tmp/augmented_data"  # augmented data
 
 if not os.path.exists(dst_ct_root):
@@ -67,7 +68,7 @@ def candidate_worker(sid, x, y, z, cls, I):
     """
     (24, 40, 40)
     """
-    z_r, y_r, x_r = 12, 20, 20
+    z_r, y_r, x_r = 24, 24, 24
     
     class_dir = os.path.join(patch_root, f"{cls}")
     if not os.path.exists(class_dir):
@@ -102,9 +103,9 @@ def candidate_worker(sid, x, y, z, cls, I):
         zero_pad = np.zeros((output.shape[0], output.shape[1], x_r*2-output.shape[2]))
         output = np.concatenate([output, zero_pad], axis=2)
 
-    assert output.shape[0] == 24 and \
-           output.shape[1] == 40 and \
-           output.shape[2] == 40, "expected shape (24, 40, 40) !"
+    assert output.shape[0] == 2*z_r and \
+           output.shape[1] == 2*y_r and \
+           output.shape[2] == 2*x_r, f"expected shape ({2*z_r}, {2*y_r}, {2*x_r}) !"
     output = output.astype(np.float16)
     np.save(file_name, output)
     print(file_name)
@@ -140,6 +141,6 @@ def patch_work():
         pool.join()
 
 if __name__ == "__main__":
-    ct_work()
+    # ct_work()
 
     patch_work() 

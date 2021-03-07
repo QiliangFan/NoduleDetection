@@ -12,7 +12,7 @@ class Data(Dataset):
         self.data = []
         self.data.extend(data_list)
         random.shuffle(self.data)
-        self.label = torch.as_tensor(label, dtype=torch.long)
+        self.label = torch.as_tensor(label, dtype=torch.float32)
     
     def __getitem__(self, idx):
         file = self.data[idx]
