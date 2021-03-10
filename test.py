@@ -1,20 +1,12 @@
-from glob import glob
+import tensorflow as tf
 import os
-import numpy as np
-# import matplotlib
-# matplotlib.use("agg")
-# import matplotlib.pyplot as plt
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
-files = glob(os.path.join(aug_root, "*"))
 
-for i in range(10):
-    file = files[i]
-    for k in range(int(1000)):
-        img = np.load(file)
+physical_devices = tf.config.list_physical_devices('GPU')
 
-        # plt.figure()
-        # plt.imshow(slice, cmap="bone")
-        # plt.savefig(f"img/{i}_{k}.png", bbox_inches="tight")
-        # plt.axis("off")
-        # plt.close()
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
+layer = tf.keras.layers.Dense(10)
+input = tf.ones([10, 20])
+out = layer(input)

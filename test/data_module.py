@@ -53,12 +53,8 @@ class DataModule(LightningDataModule):
 
         # if subsample
         self.is_subsample = is_subsample
-
-    def prepare_data(self):
-        # subsample
         if self.is_subsample:
             self.train_neg_files = random.sample(self.train_neg_files, len(self.train_neg_files)//5)
-
 
     def setup(self, stage):
         print(f"datamodule stage: ", stage)
@@ -82,7 +78,3 @@ class DataModule(LightningDataModule):
         # test_data = self.test_pos_data
         test_data = DataLoader(test_data, batch_size=128, pin_memory=True, num_workers=4, shuffle=True)
         return test_data
-
-    # def val_dataloader(self) -> DataLoader:
-    #     print("val dataloader")
-    #     return None

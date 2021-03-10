@@ -102,11 +102,11 @@ class Resnet3D(LightningModule):
             nn.Linear(256*3, 256),
             nn.Dropout(p=dropout),
             nn.Linear(256, num_classes),
-            nn.Sigmoid()
+            # nn.Sigmoid()
         )
 
         # criterion and metric
-        self.criterion = nn.BCELoss()
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
         self.fp_meter = AverageMeter()
@@ -138,26 +138,29 @@ class Resnet3D(LightningModule):
         target.unsqueeze_(dim=1)
         out = self(data)
         loss = self.criterion(out, target)
-        self.precision_recall(out, target)
+        if self.verbose:
+            self.precision_recall(out, target)
         return loss
 
     def training_step_end(self, output):
-        self.log_dict({
-            "tp": self.tp_meter.sum,
-            "fp": self.fp_meter.sum,
-            "tn": self.tn_meter.sum,
-            "fn": self.fn_meter.sum
-        }, prog_bar=True, on_epoch=False, on_step=True)
+        if self.verbose:
+            self.log_dict({
+                "tp": self.tp_meter.sum,
+                "fp": self.fp_meter.sum,
+                "tn": self.tn_meter.sum,
+                "fn": self.fn_meter.sum
+            }, prog_bar=True, on_epoch=False, on_step=True)
         return output
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
-        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
-        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
-        self.log_dict({
-            "precision": precision,
-            "recall": recall,
-            "accuracy": self.acc_meter.avg
-        }, prog_bar=True)
+        if self.verbose:
+            precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
+            recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
+            self.log_dict({
+                "precision": precision,
+                "recall": recall,
+                "accuracy": self.acc_meter.avg
+            }, prog_bar=True)
         self.acc_meter.reset()
         self.tp_meter.reset()
         self.fp_meter.reset()
@@ -205,11 +208,11 @@ class Resnet3D(LightningModule):
                         # momentum=0.2, 
                         # weight_decay=1e-4
                         )
-        stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.9)
+        # stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.9)
         # return opt
         return {
             "optimizer": opt,
-            "lr_scheduler": stepLr
+            # "lr_scheduler": stepLr
         }
 
     @torch.no_grad()
