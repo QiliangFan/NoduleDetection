@@ -16,11 +16,11 @@ patch_root = "/home/maling/fanqiliang/data/tmp/patch"   # patched root
 aug_patch_root = "/home/maling/fanqiliang/data/tmp/augmented_data"  # augmented data
 
 if not os.path.exists(dst_ct_root):
-    os.mkdir(dst_ct_root)
+    os.makedirs(dst_ct_root)
 if not os.path.exists(patch_root):
-    os.mkdir(patch_root)
+    os.makedirs(patch_root)
 if not os.path.exists(aug_patch_root):
-    os.mkdir(aug_patch_root)
+    os.makedirs(aug_patch_root)
 
 ct_root = "/home/maling/fanqiliang/lung16/LUNG16"
 seg_root = "/home/maling/fanqiliang/lung16/seg-lungs-LUNA16"
@@ -141,6 +141,6 @@ def patch_work():
         pool.join()
 
 if __name__ == "__main__":
-    # ct_work()
+    ct_work()
 
     patch_work() 
