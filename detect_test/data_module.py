@@ -48,10 +48,10 @@ class UnetDataModule(LightningDataModule):
         for i in range(total_fold):
             if i == fold_num:
                 self.test_files.extend(
-                    glob(os.path.join(data_root, f"subset{i}", "*.mhd")))
+                    glob(os.path.join(data_root, f"subset{i}", "*.*")))
             else:
                 self.train_files.extend(
-                    glob(os.path.join(data_root, f"subset{i}", "*.mhd")))
+                    glob(os.path.join(data_root, f"subset{i}", "*.*")))
         self.train_nodule_files = list(map(lambda x: x.replace(
             self.data_root, self.nodule_root), self.train_files))
         self.test_nodule_files = list(map(lambda x: x.replace(

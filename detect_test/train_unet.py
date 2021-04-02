@@ -30,7 +30,7 @@ def main():
         trainer = Trainer(
             callbacks=[ckpt], resume_from_checkpoint=ckpt_file, max_epochs=30, gpus=cuda if cuda >= 0 else None, flush_logs_every_n_steps=5)
         model = Unet()
-        data_module = UnetDataModule(i, data_root, nodule_root, batch_size=8)
+        data_module = UnetDataModule(i, data_root, nodule_root, batch_size=batch_size)
 
         # train and test
         if stage == "train":
@@ -41,14 +41,17 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stage", type=str, required=True, help="Model stage")
-    parser.add_argument("--cuda", type=int, default=-1, help="-1: no gpu; n(n >= 0): use gpu-n")
+    parser.add_argument("--stage", type=str, required=True, help="Model stage: train or test")
+    parser.add_argument("--cuda", type=int, default=-1,
+                        help="-1: no gpu; n(n >= 0): use gpu-n")
+    parser.add_argument("--batchsize", type=int, default=16, help="batch size")
 
     config = vars(parser.parse_args())
 
     stage = config["stage"]
     cuda = config["cuda"]
+    batch_size = config["batchsize"]
+    batch_size = 64
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(cuda)
     main()
-
