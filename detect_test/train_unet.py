@@ -12,9 +12,15 @@ from data_module import UnetDataModule
 from unet import Unet
 
 dir_root = os.path.dirname(os.path.abspath(__file__))
+torch.set_num_threads(8)
+# 210
+data_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
+nodule_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule"
+
+
 # 219
-data_root = "/home/fanqiliang_be/data/luna16/cube_ct"
-nodule_root = "/home/fanqiliang_be/data/luna16/cube_nodule"
+# data_root = "/home/fanqiliang_be/data/luna16/cube_ct"
+# nodule_root = "/home/fanqiliang_be/data/luna16/cube_nodule"
 
 
 def main():
@@ -53,7 +59,7 @@ if __name__ == "__main__":
     stage = config["stage"]
     cuda = config["cuda"]
     batch_size = config["batchsize"]
-    batch_size = 64
+    batch_size = 4
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(cuda)
     main()

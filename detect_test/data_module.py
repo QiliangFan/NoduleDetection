@@ -17,13 +17,19 @@ class UnetDataModule(LightningDataModule):
             self.nodule_list = nodule_list
 
         def __getitem__(self, idx):
-            img = sitk.ReadImage(self.data_list[idx])
-            arr: np.ndarray = sitk.GetArrayFromImage(img).astype(np.float32)
-            arr = arr.reshape([1, *arr.shape])
+            if self.data_list[idx].endswith(".mhd"):
+                img = sitk.ReadImage(self.data_list[idx])
+                arr: np.ndarray = sitk.GetArrayFromImage(img).astype(np.float32)
+                arr = arr.reshape([1, *arr.shape])
 
-            nodule = sitk.ReadImage(self.nodule_list[idx])
-            nodule_arr = sitk.GetArrayFromImage(nodule).astype(np.float32)
-            nodule_arr = nodule_arr.reshape([1, *nodule_arr.shape])
+                nodule = sitk.ReadImage(self.nodule_list[idx])
+                nodule_arr = sitk.GetArrayFromImage(nodule).astype(np.float32)
+                nodule_arr = nodule_arr.reshape([1, *nodule_arr.shape])
+            else:   # assume to be ".npy"
+                arr: np.ndarray = np.load(self.data_list[idx]).astype(np.float32)
+                arr = arr.reshape((1, *arr.shape))
+                nodule_arr: np.ndarray = np.load(self.nodule_list[idx]).astype((np.float32))
+                nodule_arr = nodule_arr.reshape((1, *nodule_arr.shape))
             return torch.as_tensor(arr), torch.as_tensor(nodule_arr)
 
         def __len__(self):
