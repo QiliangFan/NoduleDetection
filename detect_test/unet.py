@@ -152,5 +152,6 @@ class Unet(LightningModule):
                                     label = 0
                                 print(out[bat, ch, z, y, x].item(),
                                       label, sep=",", file=self.fp)
-                                out[bat, ch, min_z:max_z, min_y:max_y, min_x:max_x] = 0
+                                out[bat, ch, min_z:max_z,
+                                    min_y:max_y, min_x:max_x] = 0
         return batch_idx

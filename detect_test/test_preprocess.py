@@ -14,6 +14,7 @@ def show(ct_file):
         plt.savefig(f"img/{i}.png", bbox_inches="tight")
         plt.close(fig)
 
+
 if __name__ == "__main__":
     cube_ct = "/home/fanqiliang_be/data/luna16/cube_ct/subset0"
     cube_nodule = "/home/fanqiliang_be/data/luna16/cube_nodule/subset0"
