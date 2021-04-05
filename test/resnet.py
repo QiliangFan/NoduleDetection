@@ -115,19 +115,24 @@ class Resnet3D(LightningModule):
 
     def forward(self, x: torch.Tensor):
         with torch.no_grad():
-            self.logger.experiment.add_images(f"0input", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
+            if self.verbose:
+                self.logger.experiment.add_images(f"0input", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block1(x)
         with torch.no_grad():
-            self.logger.experiment.add_images(f"1block1", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
+            if self.verbose:
+                self.logger.experiment.add_images(f"1block1", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block2(x)
         with torch.no_grad():
-            self.logger.experiment.add_images(f"2block2", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
+            if self.verbose:
+                self.logger.experiment.add_images(f"2block2", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block3(x)
         with torch.no_grad():
-            self.logger.experiment.add_images(f"3block3", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
+            if self.verbose:
+                self.logger.experiment.add_images(f"3block3", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block4(x)
         with torch.no_grad():
-            self.logger.experiment.add_images(f"4block4", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
+            if self.verbose:
+                self.logger.experiment.add_images(f"4block4", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block5(x)
         x = self.fc(x)
         return x

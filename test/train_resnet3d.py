@@ -21,38 +21,45 @@ from torch.utils.data.dataset import ConcatDataset
 
 
 def main():
+    checkpoint_root = os.path.join(save_path, "checkpoints", "resnet3d")
     for i in range(FOLD):
+        # 检查checkpoint是否存在
+
+        if os.path.exists(f"{checkpoint_root}/fold{i+1}"):
+            print(f"FOLD {i} has been evaluated...")
+            continue
+        elif os.path.exists(f"{checkpoint_root}/fold{i}"):
+            print(f"LOADING FOLD {i} checkpoints...")
+
+        ckpt_dir = os.path.join(checkpoint_root, f"fold{i}")
+        ckpt_files = os.listdir(ckpt_dir) if os.path.exists(ckpt_dir) else []
+        ckpt_files.sort()
+
+        if len(ckpt_files) > 0:
+            print(f"Find ckpt {ckpt_files[-1]}")
+            ckpt = os.path.join(f"{checkpoint_root}/fold{i}", ckpt_files[-1])
+        else:
+            print("No ckpt...")
+            ckpt = None
+
         checkpoint_callback = ModelCheckpoint(
-            dirpath=f"{save_path}/checkpoints/resnet3d/fold{i}")
+            dirpath=f"{checkpoint_root}/fold{i}")
         logger = TensorBoardLogger(
             f"{save_path}/resnet3d_logs/fold{i}", name="10-fold")
 
+        epoch = 50
         trainer = Trainer(gpus=[0 if run_name == "sub_last" else 1], logger=logger, callbacks=[
-                          checkpoint_callback], max_epochs=30, reload_dataloaders_every_epoch=True)
+                          checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt)
 
         model = Resnet3D(in_channel=1, num_classes=1,
                          dropout=DROPOUT, save_root=save_path)
 
         # 先主要学正例，降采样负例
 
-        if run_name == "sub_last":
-            data_module = DataModule(i, FOLD, aug_root, is_subsample=False)
-            trainer.fit(model=model, datamodule=data_module)
-            print("finished...")
-            data_module_subsample = DataModule(
-                i, FOLD, aug_root, is_subsample=True)
-            trainer.fit(model=model, datamodule=data_module_subsample)
-            print("finished...")
-        else:
-            data_module_subsample = DataModule(
-                i, FOLD, aug_root, is_subsample=True)
-            trainer.fit(model=model, datamodule=data_module_subsample)
-            print("finished...")
-            data_module = DataModule(i, FOLD, aug_root, is_subsample=False)
-            trainer.fit(model=model, datamodule=data_module)
-            print("finished...")
+        data_module = DataModule(i, FOLD, aug_root, run_name)
+        trainer.fit(model=model, datamodule=data_module)
 
-        trainer.test(model=model, datamodule=data_module_subsample,
+        trainer.test(model=model, datamodule=data_module,
                      verbose=True)   # 两个data module的测试数据集都是一样的
 
         with open(os.path.join(save_path, "eval_metrics.txt"), "a") as fp:

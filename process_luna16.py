@@ -10,7 +10,7 @@ def assign_task(boy, food):
 
 def main():
     preprocess = Luna16Preprocess()
-    preprocess.run()
+    preprocess.run(None)
 
 
 if __name__ == "__main__":
