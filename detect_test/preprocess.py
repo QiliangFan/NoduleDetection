@@ -7,11 +7,22 @@ import numpy as np
 import pandas as pd
 import SimpleITK as sitk
 
+from augment import augment
+
+# 210
+if os.environ["IP"].endswith("210"):
+    output_dir = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
+    input_dir = "/home/fanrui/fanqiliang/data/luna16/ct"
+    output_nodule_dir = "/home/fanrui/fanqiliang/data/luna16/cube_nodule"
+    annotation_csv = "/home/fanrui/fanqiliang/lung16/CSVFILES/annotations.csv"
+
+
 # 219
-output_dir = "/home/fanqiliang_be/data/luna16/cube_ct"
-input_dir = "/home/fanqiliang_be/data/luna16/ct"
-output_nodule_dir = "/home/fanqiliang_be/data/luna16/cube_nodule"
-annotation_csv = "/home/fanqiliang_be/lung16/CSVFILES/annotations.csv"
+if os.environ["IP"].endswith("219"):
+    output_dir = "/home/fanqiliang_be/data/luna16/cube_ct"
+    input_dir = "/home/fanqiliang_be/data/luna16/ct"
+    output_nodule_dir = "/home/fanqiliang_be/data/luna16/cube_nodule"
+    annotation_csv = "/home/fanqiliang_be/lung16/CSVFILES/annotations.csv"
 
 
 def divide_with_stride(arr: np.ndarray) -> List[np.ndarray]:
@@ -80,8 +91,13 @@ def work(ct_file: str) -> None:
     nodule_patches = divide_with_stride(nodule_data)
 
     for idx, (_ct, _nodule) in enumerate(zip(ct_patchs, nodule_patches)):
-        np.save(dst_ct_file.replace(".mhd", f"_{idx}.npy"), _ct)
-        np.save(dst_nodule_file.replace(".mhd", f"_{idx}.npy"), _nodule)
+        src_ct = dst_ct_file.replace(".mhd", f"_{idx}.npy")
+        src_nodule = dst_nodule_file.replace(".mhd", f"_{idx}.npy")
+        np.save(src_ct, _ct)
+        np.save(src_nodule, _nodule)
+        if len(np.where(_nodule > 0)[0]) > 0:
+            augment(src_ct)
+
 
     # if shape[0] <= 256:  # 如果z space 小于等于256, 填0
     #     det_z = 256 - shape[0]
@@ -147,7 +163,7 @@ def work(ct_file: str) -> None:
 
 def main():
 
-    with Pool(processes=None) as pool:
+    with Pool(processes=8) as pool:
         print("prepare to start...")
         pool.map(work, input_ct_list)
         pool.close()
