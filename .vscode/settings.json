@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/home/fanrui/anaconda3/envs/ml/bin/python",
+    "python.pythonPath": "/home/maling/miniconda3/envs/ml/bin/python",
     "python.linting.banditEnabled": false,
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true
