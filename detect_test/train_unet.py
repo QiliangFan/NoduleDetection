@@ -12,11 +12,12 @@ from data_module import UnetDataModule
 from unet import Unet
 
 dir_root = os.path.dirname(os.path.abspath(__file__))
-torch.set_num_threads(8)
+torch.set_num_threads(10)
 # 210
 if os.environ["IP"].endswith("210"):
     data_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
     nodule_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule"
+    aug_root = "/home/fanrui/fanqiliang/data/luna16/cube_aug"
 
 
 # 219
@@ -39,7 +40,7 @@ def main():
             callbacks=[ckpt], resume_from_checkpoint=ckpt_file, max_epochs=30, gpus=cuda if cuda >= 0 else None, flush_logs_every_n_steps=5)
         model = Unet()
         data_module = UnetDataModule(
-            i, data_root, nodule_root, batch_size=batch_size)
+            i, data_root, nodule_root, aug_root=aug_root, batch_size=batch_size)
 
         # train and test
         if stage == "train":

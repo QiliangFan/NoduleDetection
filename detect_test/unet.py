@@ -31,7 +31,7 @@ class Unet(LightningModule):
     为了有更快的训练速度, 降采样部分使用stride=2的max pooling
     """
 
-    def __init__(self, channels=[1, 2, 4, 8, 16, 32]):
+    def __init__(self, channels=[1, 2, 4, 8, 16]):
         super(Unet, self).__init__()
         self.layer0 = nn.Sequential(
             make_conv3d(channels[0], channels[1]),  # 256
@@ -53,31 +53,20 @@ class Unet(LightningModule):
             make_conv3d(channels[4], channels[4])
         )
 
-        self.layer4 = nn.Sequential(
-            make_conv3d(channels[4], channels[5], stride=2),  # 16
-            make_conv3d(channels[5], channels[5])
-        )
-
-        self.up_conv0 = make_transconv3d(channels[5], channels[4])
+        self.up_conv0 = make_transconv3d(channels[4], channels[3])
         self.up_layer0 = nn.Sequential(
-            make_conv3d(channels[5], channels[4]),
-            make_conv3d(channels[4], channels[4])
-        )
-
-        self.up_conv1 = make_transconv3d(channels[4], channels[3])
-        self.up_layer1 = nn.Sequential(
             make_conv3d(channels[4], channels[3]),
             make_conv3d(channels[3], channels[3])
         )
 
-        self.up_conv2 = make_transconv3d(channels[3], channels[2])
-        self.up_layer2 = nn.Sequential(
+        self.up_conv1 = make_transconv3d(channels[3], channels[2])
+        self.up_layer1 = nn.Sequential(
             make_conv3d(channels[3], channels[2]),
             make_conv3d(channels[2], channels[2])
         )
 
-        self.up_conv3 = make_transconv3d(channels[2], channels[1])
-        self.up_layer3 = nn.Sequential(
+        self.up_conv2 = make_transconv3d(channels[2], channels[1])
+        self.up_layer2 = nn.Sequential(
             make_conv3d(channels[2], channels[1]),
             make_conv3d(channels[1], channels[1])
         )
@@ -95,19 +84,16 @@ class Unet(LightningModule):
         output1 = self.layer1(output0)
         output2 = self.layer2(output1)
         output3 = self.layer3(output2)
-        output4 = self.layer4(output3)
 
-        output = self.up_conv0(output4)
-        output = self.up_layer0(torch.cat([output3, output], dim=1))
+        output = self.up_conv0(output3)
+        output = self.up_layer0(torch.cat([output2, output], dim=1))
 
         output = self.up_conv1(output)
-        output = self.up_layer1(torch.cat([output2, output], dim=1))
+        output = self.up_layer1(torch.cat([output1, output], dim=1))
 
         output = self.up_conv2(output)
-        output = self.up_layer2(torch.cat([output1, output], dim=1))
+        output = self.up_layer2(torch.cat([output0, output], dim=1))
 
-        output = self.up_conv3(output)
-        output = self.up_layer3(torch.cat([output0, output], dim=1))
         output = self.conv(output)
         output = self.activation(output)
         return output

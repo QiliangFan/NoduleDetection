@@ -1,3 +1,1 @@
-import os
-
-print(os.environ["IP"])
+print("aaa".replace(None, "2"))

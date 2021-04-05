@@ -9,6 +9,7 @@ class DiceLoss(nn.Module):
 
     def forward(self, pred: Tensor, targets: Tensor):
         # 计算每张图单独的loss
-        dice_loss = 1 - (2 * torch.sum(pred * targets, dim=1) + 1) / ((torch.sum(pred, dim=1) + torch.sum(targets, dim=1) + 1))
-        dice_loss = torch.mean(dice_loss)
-        return dice_loss
+        num = torch.sum(torch.mul(pred, targets), dim=1) + 1
+        den = torch.sum(pred.pow(2) + targets.pow(2), dim=1) + 1
+        loss = 1 - num / den
+        return loss.mean()
