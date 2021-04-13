@@ -24,11 +24,7 @@ def main():
     checkpoint_root = os.path.join(save_path, "checkpoints", "resnet3d")
     for i in range(FOLD):
         # 检查checkpoint是否存在
-
-        if os.path.exists(f"{checkpoint_root}/fold{i+1}"):
-            print(f"FOLD {i} has been evaluated...")
-            continue
-        elif os.path.exists(f"{checkpoint_root}/fold{i}"):
+        if os.path.exists(f"{checkpoint_root}/fold{i}"):
             print(f"LOADING FOLD {i} checkpoints...")
 
         ckpt_dir = os.path.join(checkpoint_root, f"fold{i}")
@@ -47,7 +43,7 @@ def main():
         logger = TensorBoardLogger(
             f"{save_path}/resnet3d_logs/fold{i}", name="10-fold")
 
-        epoch = 50
+        epoch = 100
         trainer = Trainer(gpus=[0 if run_name == "sub_last" else 1], logger=logger, callbacks=[
                           checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt)
 
