@@ -20,7 +20,17 @@ class BasicBlock(nn.Module):
 
     def forward(self, x):
         if self.skip_connection:
-            pass
+            skip = self.skip_connection(x)
+        else:
+            skip = x
+        
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.conv2(x)
+
+        x += skip
+        x = self.relu2(x)
+        return x
 
 
 class ResBlock(nn.Module):
@@ -28,15 +38,51 @@ class ResBlock(nn.Module):
     def __init__(self, inplane, outplane, num_layers, down_sample=True):
         super(ResBlock, self).__init__()
 
+        self.block1 = BasicBlock(inplane=inplane, outplane=outplane, downsample=down_sample)
+
+        layers = []
+        for i in range(1, num_layers):
+            layers.append(BasicBlock(inplane=outplane, outplane=outplane, downsample=False))
+        
+        self.other_blocks = nn.Sequential(*layers)
 
     def forward(self, x):
-        pass
+        return self.other_blocks(self.block1(x))
 
 
 class ResUnet(LightningModule):
 
-    def __init__(self):
+    def __init__(self, inplane, channels=[2, 4, 8, 16]):
+        """
+        down -> down -> down -> up
+        (W, H, C) -> (W/4, H/4, C/4)
+        """
         super(ResUnet, self).__init__()
 
+        self.conv1 = ResBlock(inplane, channels[0], num_layers=2, down_sample=False)
+        self.down_layer1 = nn.Conv3d(channels[0], channels[0], kernel_size=(3, 3, 3), stride=2, padding=1)
+
+        self.conv2 = ResBlock(channels[0], channels[1], num_layers=2, down_sample=False)
+        self.down_layer2 = nn.Conv3d(channels[1], channels[1], kernel_size=(3, 3, 3), stride=2, padding=1)
+
+        self.conv3 = ResBlock(channels[1], channels[2], num_layers=2, down_sample=False)
+        self.down_layer3 = nn.Conv3d(channels[2], channels[2], kernel_size=(3, 3, 3), stride=2, padding=1)
+
+        self.conv = ResBlock(channels[2], channels[2], num_layers=2, down_sample=False)
+
+        self.up_layer1 = nn.ConvTranspose3d(channels[2], channels[2], kernel_size=2, padding=0, stride=2)
+        self.conv4 = ResBlock(channels[3], channels[2], num_layers=2, down_sample=False)
+
     def forward(self, x):
-        pass
+        output1 = self.conv1(x)
+        x = self.down_layer1(output1)
+        output2 = self.conv2(x)
+        x = self.down_layer2(output2)
+        output3 = self.conv3(x)
+        x = self.down_layer3(output3)
+
+        x = self.conv(x)
+
+        x = self.up_layer1(x)
+        x = self.conv4(torch.cat([output3, x], dim=1))
+        return x
