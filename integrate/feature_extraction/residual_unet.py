@@ -1,8 +1,9 @@
+from typing import Tuple
 import torch
 import numpy as np
 import torch.nn as nn
 from pytorch_lightning import LightningModule
-
+from .metric import DiceLoss, DiceCoefficient
 
 class BasicBlock(nn.Module):
 
@@ -73,6 +74,10 @@ class ResUnet(LightningModule):
         self.up_layer1 = nn.ConvTranspose3d(channels[2], channels[2], kernel_size=2, padding=0, stride=2)
         self.conv4 = ResBlock(channels[3], channels[2], num_layers=2, down_sample=False)
 
+        self.criterion = DiceLoss()
+
+        self.dice_coefficient = DiceCoefficient()
+
     def forward(self, x):
         output1 = self.conv1(x)
         x = self.down_layer1(output1)
@@ -86,3 +91,23 @@ class ResUnet(LightningModule):
         x = self.up_layer1(x)
         x = self.conv4(torch.cat([output3, x], dim=1))
         return x
+
+    def configure_optimizers(self):
+        from torch.optim import SGD
+        optimizer = SGD(self.parameters(), lr=1e-3, momentum=0.2, weight_decay=1e-4)
+        return optimizer
+
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
+        mhd, nodule = batch
+        out = self(mhd)
+        loss = self.criterion(out, nodule)
+        self.log("loss", loss)
+        return loss
+
+    @torch.no_grad()
+    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
+        mhd, nodule = batch
+        out = self(mhd)
+        dice_coff = self.dice_coefficient(out, nodule)
+        self.log("dice cofficient", dice_coff)
+        return dice_coff
