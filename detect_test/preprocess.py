@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-from glob import glob
-from multiprocessing import Pool
-=======
 import os
 from glob import glob
 from math import ceil
@@ -190,4 +186,3 @@ if __name__ == "__main__":
     result_ct_list = glob(os.path.join(
         output_dir, "**", "*.mhd"), recursive=True)
     print(f"预处理后列表长度: {len(result_ct_list)}")
->>>>>>> a706a77594f1779954971a6be92c3dd3a3f80c40

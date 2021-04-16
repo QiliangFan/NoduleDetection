@@ -6,6 +6,7 @@ from pytorch_lightning import LightningModule
 from torch import Tensor
 from torch.nn import Sequential
 from torch.optim import Adam
+from torch.nn import BCELoss
 
 from metrics import DiceLoss
 
@@ -75,6 +76,7 @@ class Unet(LightningModule):
         self.activation = nn.Sigmoid()
 
         self.criterion = DiceLoss()
+        self.bce = BCELoss()
 
         # output file
         self.fp = open("output.txt", "w")
@@ -105,7 +107,9 @@ class Unet(LightningModule):
     def training_step(self, batch, batch_idx):
         data, nodule = batch
         out = self(data)
-        loss = self.criterion(out, nodule)
+        loss1 = self.criterion(out, nodule)
+        loss2 = self.bce(out, nodule)
+        loss = loss1 + loss2
         self.log_dict({"loss": loss.item()})
         return loss
 
