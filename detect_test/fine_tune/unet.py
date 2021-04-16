@@ -1,14 +1,20 @@
 from __future__ import print_function
 
+import os
+
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+from metrics import DiceCoefficient, DiceLoss
 from pytorch_lightning import LightningModule
 from torch import Tensor
-from torch.nn import Sequential
+from torch.nn import BCELoss, Sequential
 from torch.optim import Adam
-from torch.nn import BCELoss
 
-from metrics import DiceLoss, DiceCoefficient
+dir_path = os.path.dirname(os.path.abspath(__file__))
+img_path = os.path.join(dir_path, "img")
+if not os.path.exists(img_path):
+    os.makedirs(img_path)
 
 
 def make_conv3d(inplane, plane, stride=1, kernel=(3, 3, 3), padding=1):
@@ -40,18 +46,21 @@ class Unet(LightningModule):
         )
 
         self.layer1 = nn.Sequential(
-            make_conv3d(channels[1], channels[2], stride=2),  # 128
-            make_conv3d(channels[2], channels[2])
+            # make_conv3d(channels[1], channels[1], stride=2),  # 128
+            nn.MaxPool3d(kernel_size=2, stride=2),
+            make_conv3d(channels[1], channels[2])
         )
 
         self.layer2 = nn.Sequential(
-            make_conv3d(channels[2], channels[3], stride=2),  # 64
-            make_conv3d(channels[3], channels[3])
+            # make_conv3d(channels[2], channels[2], stride=2),  # 64
+            nn.MaxPool3d(kernel_size=2, stride=2),
+            make_conv3d(channels[2], channels[3])
         )
 
         self.layer3 = nn.Sequential(
-            make_conv3d(channels[3], channels[4], stride=2),  # 32
-            make_conv3d(channels[4], channels[4])
+            # make_conv3d(channels[3], channels[3], stride=2),  # 32
+            nn.MaxPool3d(kernel_size=2, stride=2),
+            make_conv3d(channels[3], channels[4])
         )
 
         self.up_conv0 = make_transconv3d(channels[4], channels[3])
@@ -117,42 +126,20 @@ class Unet(LightningModule):
 
         return loss
 
-    def test_step(self, batch, batch_idx):
-        """
-        阈值: 0.8
-        """
-        threshold = 0.8
-        data, nodule = batch
-        out: Tensor = self(data)
-        out[out < threshold] = 0
-        with torch.no_grad():
-            dice = self.dice_coefficient(out, nodule)
-        self.log_dict({"batch_idx": batch_idx, "dice": dice.item()}, prog_bar=True, on_step=True)
-
-        args = out.argsort(descending=True)
-        for bat, bat_data in enumerate(args):
-            for ch, ch_data in enumerate(bat_data):
-                for z, z_data in enumerate(ch_data):
-                    for y, y_data in enumerate(z_data):
-                        for x, data in enumerate(y_data):
-                            if out[bat, ch, z, y, x] > 0:
-                                min_z, max_z = max(
-                                    0, z-5), min(args.shape[2]-1, z+5)
-                                min_y, max_y = max(
-                                    0, y-5), min(args.shape[3]-1, y+5)
-                                min_x, max_x = max(
-                                    0, x-5), min(args.shape[3]-1, x+5)
-                                if torch.max(nodule[bat, ch, min_z:max_z, min_y:max_y, min_x:max_x]) > 0:
-                                    label = 1
-                                else:
-                                    label = 0
-                                print(out[bat, ch, z, y, x].item(),
-                                      label, sep=",", file=self.fp)
-                                out[bat, ch, min_z:max_z,
-                                    min_y:max_y, min_x:max_x] = 0
-        return batch_idx
-
     @torch.no_grad()
-    def predict(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx):
         data, nodule = batch
-        return self(data)
+        out = self(data)
+
+        out = out[0][0].cpu()
+        nodule = nodule[0][0].cpu()
+
+        for idx, (ct, nod) in enumerate(zip(out, nodule)):
+            fig, ax = plt.subplots(2, 1)
+            ax[0].imshow(ct, cmap="bone")
+            ax[0].axis("off")
+            ax[1].imshow(nod, cmap="bone")
+            ax[1].axis("off")
+            plt.savefig(os.path.join(
+                img_path, f"{idx}.png"), bbox_inches="tight")
+            plt.close(fig)

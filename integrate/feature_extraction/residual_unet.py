@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 from pytorch_lightning import LightningModule
-from .metric import DiceLoss, DiceCoefficient
+from feature_extraction.metric import DiceLoss, DiceCoefficient
 
 class BasicBlock(nn.Module):
 
@@ -12,8 +12,10 @@ class BasicBlock(nn.Module):
         stride = 2 if downsample else 1
         if downsample:
             self.skip_connection = nn.Conv3d(inplane, outplane, kernel_size=3, stride=2, padding=1)
-        else:
+        elif inplane == outplane:
             self.skip_connection = None
+        else:
+            self.skip_connection = nn.Conv3d(inplane, outplane, kernel_size=1, stride=1, padding=0)
         self.conv1 = nn.Conv3d(inplane, outplane, kernel_size=3, stride=stride, padding=1)
         self.relu1 = nn.ReLU()
         self.conv2 = nn.Conv3d(outplane, outplane, kernel_size=3, stride=1, padding=1)
@@ -61,13 +63,16 @@ class ResUnet(LightningModule):
         super(ResUnet, self).__init__()
 
         self.conv1 = ResBlock(inplane, channels[0], num_layers=2, down_sample=False)
-        self.down_layer1 = nn.Conv3d(channels[0], channels[0], kernel_size=(3, 3, 3), stride=2, padding=1)
+        # self.down_layer1 = nn.Conv3d(channels[0], channels[0], kernel_size=(3, 3, 3), stride=2, padding=1)
+        self.down_layer1 = nn.MaxPool3d((2, 2, 2), stride=2)
 
         self.conv2 = ResBlock(channels[0], channels[1], num_layers=2, down_sample=False)
-        self.down_layer2 = nn.Conv3d(channels[1], channels[1], kernel_size=(3, 3, 3), stride=2, padding=1)
+        # self.down_layer2 = nn.Conv3d(channels[1], channels[1], kernel_size=(3, 3, 3), stride=2, padding=1)
+        self.down_layer2 = nn.MaxPool3d((2, 2, 2), stride=2)
 
         self.conv3 = ResBlock(channels[1], channels[2], num_layers=2, down_sample=False)
-        self.down_layer3 = nn.Conv3d(channels[2], channels[2], kernel_size=(3, 3, 3), stride=2, padding=1)
+        # self.down_layer3 = nn.Conv3d(channels[2], channels[2], kernel_size=(3, 3, 3), stride=2, padding=1)
+        self.down_layer3 = nn.MaxPool3d((2, 2, 2), stride=2)
 
         self.conv = ResBlock(channels[2], channels[2], num_layers=2, down_sample=False)
 
@@ -109,5 +114,5 @@ class ResUnet(LightningModule):
         mhd, nodule = batch
         out = self(mhd)
         dice_coff = self.dice_coefficient(out, nodule)
-        self.log("dice cofficient", dice_coff)
+        self.log("dice coefficient", dice_coff)
         return dice_coff

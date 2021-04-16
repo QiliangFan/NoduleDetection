@@ -36,7 +36,11 @@ class UnetDataModule(LightningDataModule):
                 nodule_arr: np.ndarray = np.load(
                     self.nodule_list[idx]).astype((np.float32))
                 nodule_arr = nodule_arr.reshape((1, *nodule_arr.shape))
-            return torch.as_tensor(arr), torch.as_tensor(nodule_arr)
+                if len(np.where(nodule_arr > 0)[0]) > 0:
+                    label = torch.ones((1))
+                else:
+                    label = torch.zeros((1))
+            return torch.as_tensor(arr), torch.as_tensor(label)
 
         def __len__(self):
             return len(self.data_list)

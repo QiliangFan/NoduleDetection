@@ -22,5 +22,5 @@ class DiceCoefficient(nn.Module):
     def forward(self, pred: torch.Tensor, target: torch.Tensor):
         num = torch.sum(torch.mul(pred, target), dim=1) + 1
         den = torch.sum(pred + target, dim=1) + 1
-        result = num / den
+        result = 2 * num / den
         return result.mean()
