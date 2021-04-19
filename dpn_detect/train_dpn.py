@@ -5,30 +5,33 @@ dir_path = os.path.dirname(os.path.abspath(__file__))
 project_path = os.path.dirname(dir_path)
 sys.path.append(project_path)
 
-import torch
-import torch.nn as nn
-from network.dpn import dpn131
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-
 from data_module import UnetDataModule
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import Trainer
+from network.dpn import dpn68
+import torch.nn as nn
+import torch
 
 
 
+# data_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
+# nodule_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule"
+# aug_root = "/home/fanrui/fanqiliang/data/luna16/cube_aug"
 
-data_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
-nodule_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule"
-aug_root = "/home/fanrui/fanqiliang/data/luna16/cube_aug"
+aug_root = "/home/maling/fanqiliang/data/luna16/cube_aug"
+data_root = "/home/maling/fanqiliang/data/luna16/cube_ct"
+nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule"
 
 
 def main():
+    save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dpn")
     for fold in range(10):
         data_module = UnetDataModule(fold,
                                      data_root=data_root,
                                      nodule_root=nodule_root,
                                      aug_root=aug_root)
 
-        model = dpn131()
+        model = dpn68(save_dir=save_dir)
         ckpt_path = os.path.join(dir_path, "ckpt", f"{fold}")
         model_ckpt = ModelCheckpoint(dirpath=ckpt_path)
         ckpt_list = glob(os.path.join(ckpt_path, "*.ckpt"))
@@ -43,7 +46,7 @@ def main():
 
         trainer.fit(model, datamodule=data_module)
 
-        trainer.test(model, datamodule=data_module, verbose=True)
+        # trainer.test(model, datamodule=data_module, verbose=True)
 
 
 if __name__ == "__main__":

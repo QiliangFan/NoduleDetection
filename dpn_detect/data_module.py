@@ -50,7 +50,7 @@ class UnetDataModule(LightningDataModule):
                  nodule_root: str,
                  aug_root: str,
                  total_fold: int = 10,
-                 batch_size: int = 8):
+                 batch_size: int = 16):
         """
         一折作为验证集, 剩余9折作为训练集
         """

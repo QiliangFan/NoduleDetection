@@ -140,7 +140,6 @@ class Resnet3D(LightningModule):
     def training_step(self, batch: torch.Tensor, batch_idx):
         self.batch_idx = batch_idx
         data, target = batch
-        target.unsqueeze_(dim=1)
         out = self(data)
         loss = self.criterion(out, target)
         if self.verbose:
@@ -175,7 +174,6 @@ class Resnet3D(LightningModule):
     def test_step(self, batch, batch_idx):
         self.batch_idx = batch_idx
         data, target = batch
-        target.unsqueeze_(dim=1)
         out: Tensor = self(data)
         self.precision_recall(out, target)
         with open(os.path.join(self.save_root, "output.csv") if self.save_root else "output.csv", "a") as fp:

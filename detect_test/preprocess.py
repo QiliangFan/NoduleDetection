@@ -10,19 +10,25 @@ import SimpleITK as sitk
 from augment import augment
 
 # 210
-if os.environ["IP"].endswith("210"):
-    output_dir = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
-    input_dir = "/home/fanrui/fanqiliang/data/luna16/ct"
-    output_nodule_dir = "/home/fanrui/fanqiliang/data/luna16/cube_nodule"
-    annotation_csv = "/home/fanrui/fanqiliang/lung16/CSVFILES/annotations.csv"
+# if os.environ["IP"].endswith("210"):
+#     output_dir = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
+#     input_dir = "/home/fanrui/fanqiliang/data/luna16/ct"
+#     output_nodule_dir = "/home/fanrui/fanqiliang/data/luna16/cube_nodule"
+#     annotation_csv = "/home/fanrui/fanqiliang/lung16/CSVFILES/annotations.csv"
 
 
 # 219
-if os.environ["IP"].endswith("219"):
-    output_dir = "/home/fanqiliang_be/data/luna16/cube_ct"
-    input_dir = "/home/fanqiliang_be/data/luna16/ct"
-    output_nodule_dir = "/home/fanqiliang_be/data/luna16/cube_nodule"
-    annotation_csv = "/home/fanqiliang_be/lung16/CSVFILES/annotations.csv"
+# if os.environ["IP"].endswith("219"):
+#     output_dir = "/home/fanqiliang_be/data/luna16/cube_ct"
+#     input_dir = "/home/fanqiliang_be/data/luna16/ct"
+#     output_nodule_dir = "/home/fanqiliang_be/data/luna16/cube_nodule"
+#     annotation_csv = "/home/fanqiliang_be/lung16/CSVFILES/annotations.csv"
+
+# 220
+output_dir = "/home/maling/fanqiliang/data/luna16/cube_ct"
+input_dir = "/home/maling/fanqiliang/data/luna16/ct"
+output_nodule_dir = "/home/maling/fanqiliang/data/luna16/cube_nodule"
+annotation_csv = "/home/maling/fanqiliang/lung16/CSVFILES/annotations.csv"
 
 
 def divide_with_stride(arr: np.ndarray) -> List[np.ndarray]:
@@ -163,7 +169,7 @@ def work(ct_file: str) -> None:
 
 def main():
 
-    with Pool(processes=8) as pool:
+    with Pool(processes=32) as pool:
         print("prepare to start...")
         pool.map(work, input_ct_list)
         pool.close()
