@@ -55,6 +55,10 @@ class DualPathBlock(nn.Module):
         self.relu3 = nn.ReLU(inplace=True)
 
     def forward(self, x):
+        if isinstance(x, Tuple):
+            dense_x , res_x = x
+        else:
+            dense_x, res_x = None, x
         x = torch.cat(x, dim=1) if isinstance(x, Tuple) else x
         x = self.conv1(x)
         x = self.bn1(x)
@@ -66,18 +70,21 @@ class DualPathBlock(nn.Module):
         x = self.bn3(x)
         x = self.relu3(x)
         dense_out = x[:, :self.inc, :, :, :]
+        if dense_x is not None:
+            dense_out = torch.cat([dense_x, dense_out], dim=1)
         res_out = x[:, self.inc:, :, :, :]
+        res_out = res_x + res_out
         return dense_out, res_out
 
 
 class DPN(LightningModule):
 
-    def __init__(self, init_feature: int, groups: int, blocks: List[int] = [4, 4, 5, 4], channels: List[int] = [32, 64, 128, 256], inc: List = [16, 32, 32, 128], save_dir: str = None):
+    def __init__(self, init_feature: int, groups: int, blocks: List[int] = [3, 4, 4, 3], channels: List[int] = [96, 192, 384, 768], inc: List = [16, 32, 24, 128], save_dir: str = None):
         super().__init__()
         self.save_dir = save_dir
 
         self.input_block = InputBlock(1, init_feature)
-        out_1x1_channels = [64, 128, 256, 512]
+        out_1x1_channels = [256, 512, 1024, 2048]
 
         block1 = [DualPathBlock(
             inc[0], init_feature, out_1x1_ch1=channels[0], out_3x3_ch=channels[0], out_1x1_ch2=out_1x1_channels[0], groups=groups)]
