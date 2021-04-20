@@ -24,7 +24,7 @@ from pytorch_lightning import LightningModule
 from network.adaptive_avgmax_pool import adaptive_avgmax_pool3d
 
 
-__all__ = ['DPN', 'dpn68', 'dpn68b', 'dpn92', 'dpn98', 'dpn131', 'dpn107']
+__all__ = ['DPN', 'dpn68', 'dpn68b', 'dpn92', 'dpn98', 'dpn131', 'dpn107', "getdpn"]
 
 
 model_urls = {
@@ -41,6 +41,14 @@ model_urls = {
     'dpn107-extra':
         'https://github.com/rwightman/pytorch-dpn-pretrained/releases/download/v0.1/dpn107_extra-1ac7121e2.pth'
 }
+
+
+def getdpn(**kwargs):
+    model = DPN(
+        small=True, num_init_features=4, k_r=32, groups=2,
+        k_sec=(3, 4, 4, 3), inc_sec=(16, 32, 32, 64),
+        test_time_pool=False, **kwargs)
+    return model
 
 
 def dpn68(pretrained=False, test_time_pool=False, **kwargs):

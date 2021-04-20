@@ -10,7 +10,7 @@ sys.path.append(project_path)
 from glob import glob
 import argparse
 from data_module import Data, DataModule
-from network.dpn import dpn68
+from network.dpn import getdpn
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
 project_path = os.path.dirname(dir_path)
@@ -33,8 +33,8 @@ def main():
                 exit(0)
 
         data_module = DataModule(fold, 10, aug_root, "dpn")
-        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=15, resume_from_checkpoint=ckpt)
-        model = dpn68(save_dir=os.path.join(dir_path, "dpn"))
+        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=5, resume_from_checkpoint=ckpt)
+        model = getdpn(save_dir=os.path.join(dir_path, "dpn"))
 
         if stage == "train":
             trainer.fit(model, datamodule=data_module)
