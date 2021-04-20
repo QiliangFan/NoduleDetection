@@ -33,7 +33,7 @@ def main():
 
         data_module = DataModule(fold, 10, aug_root, "self_dpn")
         trainer = Trainer(gpus=[1], callbacks=[model_ckpt], max_epochs=5, resume_from_checkpoint=ckpt)
-        model = DPN(2, groups=4, save_dir=os.path.join(dir_path, "self_dpn"))
+        model = DPN(64, groups=4, save_dir=os.path.join(dir_path, "self_dpn"))
 
         if stage == "train":
             trainer.fit(model, datamodule=data_module)

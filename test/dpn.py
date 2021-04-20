@@ -40,39 +40,43 @@ class DualPathBlock(nn.Module):
         self.out_3x3_ch = out_3x3_ch
         self.out_1x1_ch2 = out_1x1_ch2
 
+        self.project = nn.Conv3d(in_feature, out_1x1_ch2 + 2*inc, kernel_size=1, stride=(2 if down_sample else 1))
+
         self.conv1 = nn.Conv3d(
-            in_feature, out_1x1_ch1, (1, 1, 1), padding=0, stride=(2 if down_sample else 1))
+            out_1x1_ch2 + 2*inc, out_1x1_ch1, (1, 1, 1), padding=0)
         self.bn1 = nn.BatchNorm3d(out_1x1_ch1, eps=1e-3)
         self.relu1 = nn.ReLU(inplace=True)
+
         assert out_3x3_ch % groups == 0
         self.conv2 = nn.Conv3d(out_1x1_ch1, out_3x3_ch,
                                (3, 3, 3), padding=1, stride=1, groups=groups)
         self.bn2 = nn.BatchNorm3d(out_3x3_ch, eps=1e-3)
         self.relu2 = nn.ReLU(inplace=True)
-        self.conv3 = nn.Conv3d(out_3x3_ch, out_1x1_ch2,
+
+        self.conv3 = nn.Conv3d(out_3x3_ch, out_1x1_ch2+inc,
                                (1, 1, 1), padding=0, stride=1)
-        self.bn3 = nn.BatchNorm3d(out_1x1_ch2, eps=1e-3)
+        self.bn3 = nn.BatchNorm3d(out_1x1_ch2+ , eps=1e-3)
         self.relu3 = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        if isinstance(x, Tuple):
-            dense_x , res_x = x
-        else:
-            dense_x, res_x = None, x
         x = torch.cat(x, dim=1) if isinstance(x, Tuple) else x
+        x = self.project(x)
+        res_x, dense_x = x[:, :self.out_1x1_ch2], x[:, self.out_1x1_ch2:]
+
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu1(x)
+
         x = self.conv2(x)
         x = self.bn2(x)
         x = self.relu2(x)
+
         x = self.conv3(x)
         x = self.bn3(x)
         x = self.relu3(x)
-        dense_out = x[:, :self.inc, :, :, :]
-        if dense_x is not None:
-            dense_out = torch.cat([dense_x, dense_out], dim=1)
-        res_out = x[:, self.inc:, :, :, :]
+        res_out = x[:, :self.out_1x1_ch2, :, :, :]
+        dense_out = x[:, self.out_1x1_ch2:, :, :, :]
+        dense_out = torch.cat([dense_x, dense_out], dim=1)
         res_out = res_x + res_out
         return dense_out, res_out
 
@@ -88,23 +92,34 @@ class DPN(LightningModule):
 
         block1 = [DualPathBlock(
             inc[0], init_feature, out_1x1_ch1=channels[0], out_3x3_ch=channels[0], out_1x1_ch2=out_1x1_channels[0], groups=groups)]
-        block1.extend([DualPathBlock(inc[0], out_1x1_channels[0], out_1x1_ch1=channels[0],
-                                     out_3x3_ch=channels[0], out_1x1_ch2=out_1x1_channels[0], groups=groups) for i in range(blocks[0]-1)])
+        in_chs = out_1x1_channels[0] + 3 * inc[0]
+        for i in range(blocks[0]):
+            block1.append(DualPathBlock(inc[0], in_chs, out_1x1_ch1=channels[0], out_3x3_ch=channels[0], out_1x1_ch2=out_1x1_channels[0], groups=groups))
+            in_chs += inc[0]
 
-        block2 = [DualPathBlock(inc[1], out_1x1_channels[0], out_1x1_ch1=channels[1],
-                                out_3x3_ch=channels[1], out_1x1_ch2=out_1x1_channels[1], down_sample=True, groups=groups)]
-        block2.extend([DualPathBlock(inc[1], out_1x1_channels[1], out_1x1_ch1=channels[1],
-                                     out_3x3_ch=channels[1], out_1x1_ch2=out_1x1_channels[1], groups=groups) for i in range(blocks[1]-1)])
+        block2 = [DualPathBlock(
+            inc[1], in_chs, out_1x1_ch1=channels[1], out_3x3_ch=channels[1], out_1x1_ch2=out_1x1_channels[0], groups=groups
+        )]
+        in_chs = out_1x1_channels[1] + 3 * inc[1]
+        for i in range(blocks[1]):
+            block2.append(DualPathBlock(inc[1], in_chs, out_1x1_ch1=channels[1], out_3x3_ch=channels[1], out_1x1_ch2=out_1x1_channels[1], groups=groups))
+            in_chs += inc[1]
 
-        block3 = [DualPathBlock(inc[2], out_1x1_channels[1], out_1x1_ch1=channels[2],
-                                out_3x3_ch=channels[2], out_1x1_ch2=out_1x1_channels[2], down_sample=True, groups=groups)]
-        block3.extend([DualPathBlock(
-            inc[2], out_1x1_channels[2], out_1x1_ch1=channels[2], out_3x3_ch=channels[2], out_1x1_ch2=out_1x1_channels[2], groups=groups) for i in range(blocks[2]-1)])
-
-        block4 = [DualPathBlock(inc[3], out_1x1_channels[2], out_1x1_ch1=channels[3],
-                                out_3x3_ch=channels[3], out_1x1_ch2=out_1x1_channels[3], down_sample=True, groups=groups)]
-        block4.extend([DualPathBlock(inc[3], out_1x1_channels[3], out_1x1_ch1=channels[3],
-                                     out_3x3_ch=channels[3], out_1x1_ch2=out_1x1_channels[3], groups=groups) for i in range(blocks[3]-1)])
+        block3 = [DualPathBlock(
+            inc[2], in_chs, out_1x1_ch1=channels[2], out_3x3_ch=channels[2], out_1x1_ch2=out_1x1_channels[2], groups=groups
+        )]
+        in_chs = out_1x1_channels[2] + 3 * inc[2]
+        for i in range(blocks[2]):
+            block3.append(DualPathBlock(inc[2], in_chs, out_1x1_ch1=channels[2], out_3x3_ch=channels[2], out_1x1_ch2=out_1x1_channels[2], groups=groups))
+            in_chs += inc[2]
+        
+        block4 = [DualPathBlock(
+            inc[3], in_chs, out_1x1_ch1=channels[3], out_3x3_ch=channels[3], out_1x1_ch2=channels[3], groups=groups
+        )]
+        in_chs = out_1x1_channels[3] + 3 * inc[3]
+        for i in range(blocks[3]):
+            block4.append(DualPathBlock(inc[3], in_chs, out_1x1_ch1=channels[3], out_3x3_ch=channels[3], out_1x1_ch2=out_1x1_channels[3], groups=groups))
+            in_chs += inc[3]
 
         self.feature = nn.Sequential(*block1, *block2, *block3, *block4)
 
