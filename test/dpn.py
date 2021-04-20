@@ -77,32 +77,33 @@ class DPN(LightningModule):
         self.save_dir = save_dir
 
         self.input_block = InputBlock(1, init_feature)
+        out_1x1_channels = [64, 128, 256, 512]
 
         block1 = [DualPathBlock(
-            inc[0], init_feature, out_1x1_ch1=channels[0], out_3x3_ch=channels[0], out_1x1_ch2=256, groups=groups)]
-        block1.extend([DualPathBlock(inc[0], 256, out_1x1_ch1=channels[0],
-                                     out_3x3_ch=channels[0], out_1x1_ch2=256, groups=groups) for i in range(blocks[0]-1)])
+            inc[0], init_feature, out_1x1_ch1=channels[0], out_3x3_ch=channels[0], out_1x1_ch2=out_1x1_channels[0], groups=groups)]
+        block1.extend([DualPathBlock(inc[0], out_1x1_channels[0], out_1x1_ch1=channels[0],
+                                     out_3x3_ch=channels[0], out_1x1_ch2=out_1x1_channels[0], groups=groups) for i in range(blocks[0]-1)])
 
-        block2 = [DualPathBlock(inc[1], 256, out_1x1_ch1=channels[1],
-                                out_3x3_ch=channels[1], out_1x1_ch2=512, down_sample=True, groups=groups)]
-        block2.extend([DualPathBlock(inc[1], 512, out_1x1_ch1=channels[1],
-                                     out_3x3_ch=channels[1], out_1x1_ch2=512, groups=groups) for i in range(blocks[1]-1)])
+        block2 = [DualPathBlock(inc[1], out_1x1_channels[0], out_1x1_ch1=channels[1],
+                                out_3x3_ch=channels[1], out_1x1_ch2=out_1x1_channels[1], down_sample=True, groups=groups)]
+        block2.extend([DualPathBlock(inc[1], out_1x1_channels[1], out_1x1_ch1=channels[1],
+                                     out_3x3_ch=channels[1], out_1x1_ch2=out_1x1_channels[1], groups=groups) for i in range(blocks[1]-1)])
 
-        block3 = [DualPathBlock(inc[2], 512, out_1x1_ch1=channels[2],
-                                out_3x3_ch=channels[2], out_1x1_ch2=1024, down_sample=True, groups=groups)]
+        block3 = [DualPathBlock(inc[2], out_1x1_channels[1], out_1x1_ch1=channels[2],
+                                out_3x3_ch=channels[2], out_1x1_ch2=out_1x1_channels[2], down_sample=True, groups=groups)]
         block3.extend([DualPathBlock(
-            inc[2], 1024, out_1x1_ch1=channels[2], out_3x3_ch=channels[2], out_1x1_ch2=1024, groups=groups) for i in range(blocks[2]-1)])
+            inc[2], out_1x1_channels[2], out_1x1_ch1=channels[2], out_3x3_ch=channels[2], out_1x1_ch2=out_1x1_channels[2], groups=groups) for i in range(blocks[2]-1)])
 
-        block4 = [DualPathBlock(inc[3], 1024, out_1x1_ch1=channels[3],
-                                out_3x3_ch=channels[3], out_1x1_ch2=2048, down_sample=True, groups=groups)]
-        block4.extend([DualPathBlock(inc[3], 2048, out_1x1_ch1=channels[3],
-                                     out_3x3_ch=channels[3], out_1x1_ch2=2048, groups=groups) for i in range(blocks[3]-1)])
+        block4 = [DualPathBlock(inc[3], out_1x1_channels[2], out_1x1_ch1=channels[3],
+                                out_3x3_ch=channels[3], out_1x1_ch2=out_1x1_channels[3], down_sample=True, groups=groups)]
+        block4.extend([DualPathBlock(inc[3], out_1x1_channels[3], out_1x1_ch1=channels[3],
+                                     out_3x3_ch=channels[3], out_1x1_ch2=out_1x1_channels[3], groups=groups) for i in range(blocks[3]-1)])
 
         self.feature = nn.Sequential(*block1, *block2, *block3, *block4)
 
         self.classify = nn.Sequential(
             nn.AdaptiveAvgPool3d((1, 1, 1)),
-            nn.Conv3d(2048, 1, kernel_size=1, padding=0, stride=1),
+            nn.Conv3d(out_1x1_channels[3], 1, kernel_size=1, padding=0, stride=1),
             nn.Sigmoid()
         )
 
