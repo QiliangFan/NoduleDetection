@@ -43,9 +43,15 @@ def main():
 
 
 if __name__ == "__main__":
-    pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
-    neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
-    aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+    # 220
+    # pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
+    # neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
+    # aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+
+    # 209
+    pos_root = "/home/nku2/fanqiliang/data/tmp/patch/1"
+    neg_root = "/home/nku2/fanqiliang/data/tmp/patch/0"
+    aug_root = "/home/nku2/fanqiliang/data/tmp/augmented_data"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", default="train", type=str)
