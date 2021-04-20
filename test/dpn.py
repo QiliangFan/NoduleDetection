@@ -44,6 +44,7 @@ class DualPathBlock(nn.Module):
             in_feature, out_1x1_ch1, (1, 1, 1), padding=0, stride=(2 if down_sample else 1))
         self.bn1 = nn.BatchNorm3d(out_1x1_ch1, eps=1e-3)
         self.relu1 = nn.ReLU(inplace=True)
+        assert out_3x3_ch % groups == 0
         self.conv2 = nn.Conv3d(out_1x1_ch1, out_3x3_ch,
                                (3, 3, 3), padding=1, stride=1, groups=groups)
         self.bn2 = nn.BatchNorm3d(out_3x3_ch, eps=1e-3)
@@ -57,12 +58,12 @@ class DualPathBlock(nn.Module):
         x = torch.cat(x, dim=1) if isinstance(x, Tuple) else x
         x = self.conv1(x)
         x = self.bn1(x)
-        x = self.relu1(1)
+        x = self.relu1(x)
         x = self.conv2(x)
         x = self.bn2(x)
         x = self.relu2(x)
         x = self.conv3(x)
-        x = self.bn2(x)
+        x = self.bn3(x)
         x = self.relu3(x)
         dense_out = x[:, :self.inc, :, :, :]
         res_out = x[:, self.inc:, :, :, :]
@@ -78,24 +79,24 @@ class DPN(LightningModule):
         self.input_block = InputBlock(1, init_feature)
 
         block1 = [DualPathBlock(
-            inc[0], init_feature, out_1x1_ch1=channels[0], out_3x3_ch=channels[0], out_1x1_ch2=256)]
+            inc[0], init_feature, out_1x1_ch1=channels[0], out_3x3_ch=channels[0], out_1x1_ch2=256, groups=groups)]
         block1.extend([DualPathBlock(inc[0], 256, out_1x1_ch1=channels[0],
-                                     out_3x3_ch=channels[0], out_1x1_ch2=256) for i in range(blocks[0]-1)])
+                                     out_3x3_ch=channels[0], out_1x1_ch2=256, groups=groups) for i in range(blocks[0]-1)])
 
         block2 = [DualPathBlock(inc[1], 256, out_1x1_ch1=channels[1],
-                                out_3x3_ch=channels[1], out_1x1_ch2=512, down_sample=True)]
+                                out_3x3_ch=channels[1], out_1x1_ch2=512, down_sample=True, groups=groups)]
         block2.extend([DualPathBlock(inc[1], 512, out_1x1_ch1=channels[1],
-                                     out_3x3_ch=channels[1], out_1x1_ch2=512) for i in range(blocks[1]-1)])
+                                     out_3x3_ch=channels[1], out_1x1_ch2=512, groups=groups) for i in range(blocks[1]-1)])
 
         block3 = [DualPathBlock(inc[2], 512, out_1x1_ch1=channels[2],
-                                out_3x3_ch=channels[2], out_1x1_ch2=1024, down_sample=True)]
+                                out_3x3_ch=channels[2], out_1x1_ch2=1024, down_sample=True, groups=groups)]
         block3.extend([DualPathBlock(
-            inc[2], 1024, out_1x1_ch1=channels[2], out_3x3_ch=channels[2], out_1x1_ch2=1024) for i in range(blocks[2]-1)])
+            inc[2], 1024, out_1x1_ch1=channels[2], out_3x3_ch=channels[2], out_1x1_ch2=1024, groups=groups) for i in range(blocks[2]-1)])
 
         block4 = [DualPathBlock(inc[3], 1024, out_1x1_ch1=channels[3],
-                                out_3x3_ch=channels[3], out_1x1_ch2=2048, down_sample=True)]
+                                out_3x3_ch=channels[3], out_1x1_ch2=2048, down_sample=True, groups=groups)]
         block4.extend([DualPathBlock(inc[3], 2048, out_1x1_ch1=channels[3],
-                                     out_3x3_ch=channels[3], out_1x1_ch2=2048) for i in range(blocks[3]-1)])
+                                     out_3x3_ch=channels[3], out_1x1_ch2=2048, groups=groups) for i in range(blocks[3]-1)])
 
         self.feature = nn.Sequential(*block1, *block2, *block3, *block4)
 
@@ -114,6 +115,8 @@ class DPN(LightningModule):
         self.fn_meter = AverageMeter()
 
     def forward(self, x):
+        x = self.input_block(x)
+
         x = self.feature(x)
 
         x = torch.cat(x, dim=1) if isinstance(x, Tuple) else x
@@ -135,6 +138,7 @@ class DPN(LightningModule):
 
         with torch.no_grad():
             self.acc_meter.update(out.cpu(), target.cpu())
+            self.log("acc", self.acc_meter.avg, prog_bar=True)
         return loss
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
