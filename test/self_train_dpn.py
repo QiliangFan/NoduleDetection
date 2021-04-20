@@ -1,24 +1,23 @@
 import torch
 import torch.nn as nn
-import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from glob import glob
 import os
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 import sys
 sys.path.append(project_path)
-from glob import glob
+dir_path = os.path.dirname(os.path.abspath(__file__))
 import argparse
 from data_module import Data, DataModule
-from unet import Unet3D
-
-dir_path = os.path.dirname(os.path.abspath(__file__))
-project_path = os.path.dirname(dir_path)
-
+try:
+    from .dpn import DPN
+except:
+    from dpn import DPN
 
 def main():
     for fold in range(10):
-        ckpt_path = os.path.join(dir_path, "ckpt_unet", f"{fold}")
+        ckpt_path = os.path.join(dir_path, "ckpt_selfdpn", f"{fold}")
         if not os.path.exists(ckpt_path):
             os.makedirs(ckpt_path)
         model_ckpt = ModelCheckpoint(dirpath=ckpt_path)
@@ -32,9 +31,9 @@ def main():
             if stage == "test":
                 exit(0)
 
-        data_module = DataModule(fold, 10, aug_root, "unet")
-        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=2, resume_from_checkpoint=ckpt)
-        model = Unet3D(save_dir=os.path.join(dir_path, "unet"))
+        data_module = DataModule(fold, 10, aug_root, "self_dpn")
+        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=15, resume_from_checkpoint=ckpt)
+        model = DPN(64, groups=4, save_dir=os.path.join(dir_path, "self_dpn"))
 
         if stage == "train":
             trainer.fit(model, datamodule=data_module)
@@ -42,16 +41,17 @@ def main():
             trainer.test(model, datamodule=data_module, verbose=True)
 
 
+
 if __name__ == "__main__":
     # 220
-    pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
-    neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
-    aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+    # pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
+    # neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
+    # aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
 
     # 209
-    # pos_root = "/home/nku2/fanqiliang/data/tmp/patch/1"
-    # neg_root = "/home/nku2/fanqiliang/data/tmp/patch/0"
-    # aug_root = "/home/nku2/fanqiliang/data/tmp/augmented_data"
+    pos_root = "/home/nku2/fanqiliang/data/tmp/patch/1"
+    neg_root = "/home/nku2/fanqiliang/data/tmp/patch/0"
+    aug_root = "/home/nku2/fanqiliang/data/tmp/augmented_data"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", default="train", type=str)
