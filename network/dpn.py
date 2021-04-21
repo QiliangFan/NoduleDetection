@@ -46,7 +46,7 @@ model_urls = {
 def getdpn(**kwargs):
     model = DPN(
         small=True, num_init_features=2, k_r=2, groups=1,
-        k_sec=(2, 2, 3, 2), inc_sec=(2, 4, 8, 16),
+        k_sec=(2, 2, 2, 2), inc_sec=(2, 4, 8, 16),
         test_time_pool=False, **kwargs)
     return model
 
@@ -478,7 +478,8 @@ class DPN(LightningModule):
         self.fn_meter.reset()
 
     def configure_optimizers(self):
-        from torch.optim import SGD
+        from torch.optim import SGD, Adam
 
-        sgd = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
-        return sgd
+        # optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
+        optim = Adam(self.parameters(), lr=1e-3)
+        return optim
