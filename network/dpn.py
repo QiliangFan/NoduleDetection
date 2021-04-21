@@ -46,7 +46,7 @@ model_urls = {
 def getdpn(**kwargs):
     model = DPN(
         small=True, num_init_features=4, k_r=4, groups=2,
-        k_sec=(3, 4, 4, 3), inc_sec=(4, 8, 8, 16),
+        k_sec=(2, 2, 3, 2), inc_sec=(4, 8, 8, 16),
         test_time_pool=False, **kwargs)
     return model
 
