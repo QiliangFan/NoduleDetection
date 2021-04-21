@@ -45,8 +45,8 @@ model_urls = {
 
 def getdpn(**kwargs):
     model = DPN(
-        small=True, num_init_features=4, k_r=4, groups=2,
-        k_sec=(3, 4, 4, 3), inc_sec=(4, 8, 8, 16),
+        small=True, num_init_features=2, k_r=2, groups=1,
+        k_sec=(2, 2, 3, 2), inc_sec=(2, 4, 8, 16),
         test_time_pool=False, **kwargs)
     return model
 
@@ -223,6 +223,7 @@ class DualPathBlock(nn.Module):
         self.num_1x1_c = num_1x1_c
         self.inc = inc
         self.b = b
+        self.dropout = nn.Dropout3d(inplace=False)
         if block_type == 'proj':
             self.key_stride = 1
             self.has_proj = True
@@ -268,7 +269,9 @@ class DualPathBlock(nn.Module):
         else:
             x_s1 = x[0]
             x_s2 = x[1]
+        x_in = self.dropout(x_in)
         x_in = self.c1x1_a(x_in)
+        x_in = self.dropout(x_in)
         x_in = self.c3x3_b(x_in)
         if self.b:
             x_in = self.c1x1_c(x_in)
