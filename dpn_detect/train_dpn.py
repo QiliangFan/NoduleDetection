@@ -44,9 +44,9 @@ def main():
         trainer = Trainer(gpus=[1], callbacks=[model_ckpt],
                           max_epochs=50, resume_from_checkpoint=ckpt)
 
-        trainer.fit(model, datamodule=data_module)
+        # trainer.fit(model, datamodule=data_module)
 
-        # trainer.test(model, datamodule=data_module, verbose=True)
+        trainer.test(model, datamodule=data_module, verbose=True)
 
 
 if __name__ == "__main__":
