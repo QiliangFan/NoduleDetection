@@ -21,7 +21,7 @@ def main():
         ckpt_path = os.path.join(dir_path, "ckpt_dpn", f"{fold}")
         if not os.path.exists(ckpt_path):
             os.makedirs(ckpt_path)
-        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="recall", verbose=True, mode="min")
+        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="precision", verbose=True)
         ckpt_list = glob(os.path.join(ckpt_path, "*.ckpt"))
         if len(ckpt_list) > 0:
             ckpt_list.sort()
@@ -33,7 +33,7 @@ def main():
                 exit(0)
 
         data_module = DataModule(fold, 10, aug_root, "dpn")
-        trainer = Trainer(gpus=[1], callbacks=[model_ckpt], max_epochs=5, resume_from_checkpoint=ckpt)
+        trainer = Trainer(gpus=[1], callbacks=[model_ckpt], max_epochs=20, resume_from_checkpoint=ckpt)
         model = getdpn(save_dir=os.path.join(dir_path, "dpn"))
 
         if stage == "train":

@@ -171,34 +171,20 @@ class Resnet3D(LightningModule):
         self.tn_meter.reset()
         self.fn_meter.reset()
 
-    def test_step(self, batch, batch_idx):
-        self.batch_idx = batch_idx
-        data, target = batch
-        out: Tensor = self(data)
-        self.precision_recall(out, target)
-        with open(os.path.join(self.save_root, "output.csv") if self.save_root else "output.csv", "a") as fp:
-            for v, l in zip(out.cpu().squeeze().tolist(), target.cpu().squeeze().tolist()):
-                print(v, l, sep=",", file=fp)
+    def validation_step(self, batch, batch_idx):
+        self.test_operation(batch, batch_idx)
 
-        self.log_dict({
-            "tp": self.tp_meter.sum,
-            "fp": self.fp_meter.sum,
-            "tn": self.tn_meter.sum,
-            "fn": self.fn_meter.sum
-        }, on_epoch=False, prog_bar=True, on_step=True)
+    def validation_epoch_end(self, outputs: List[Any]) -> None:
+        self.acc_meter.reset()
+        self.tp_meter.reset()
+        self.fp_meter.reset()
+        self.tn_meter.reset()
+        self.fn_meter.reset()
+
+    def test_step(self, batch, batch_idx):
+        self.test_operation(batch, batch_idx, save=True)
 
     def test_epoch_end(self, outputs: List[Any]) -> None:
-        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
-        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
-        self.log_dict({
-            "precision": precision,
-            "recall": recall,
-            "accuracy": self.acc_meter.avg,
-            "tp": self.tp_meter.sum,
-            "fp": self.fp_meter.sum,
-            "tn": self.tn_meter.sum,
-            "fn": self.fn_meter.sum
-        }, prog_bar=True)
         self.acc_meter.reset()
         self.tp_meter.reset()
         self.fp_meter.reset()
@@ -252,3 +238,26 @@ class Resnet3D(LightningModule):
         self.fp_meter.update(fps)
         self.tn_meter.update(tns)
         self.fn_meter.update(fns)
+
+    @torch.no_grad()
+    def test_operation(self, batch, batch_idx, save=False):
+        self.batch_idx = batch_idx
+        data, target = batch
+        out: Tensor = self(data)
+        self.precision_recall(out, target)
+        if save:
+            with open(os.path.join(self.save_root, "output.csv") if self.save_root else "output.csv", "a") as fp:
+                for v, l in zip(out.cpu().squeeze().tolist(), target.cpu().squeeze().tolist()):
+                    print(v, l, sep=",", file=fp)
+
+        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
+        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
+        self.log_dict({
+            "precision": precision,
+            "recall": recall,
+            "accuracy": self.acc_meter.avg,
+            "tp": self.tp_meter.sum,
+            "fp": self.fp_meter.sum,
+            "tn": self.tn_meter.sum,
+            "fn": self.fn_meter.sum
+        }, prog_bar=True)

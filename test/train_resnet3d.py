@@ -39,7 +39,7 @@ def main():
             ckpt = None
 
         checkpoint_callback = ModelCheckpoint(
-            dirpath=f"{checkpoint_root}/fold{i}")
+            dirpath=f"{checkpoint_root}/fold{i}", monitor="accuracy")
         logger = TensorBoardLogger(
             f"{save_path}/resnet3d_logs/fold{i}", name="10-fold")
 

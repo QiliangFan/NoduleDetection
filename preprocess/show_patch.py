@@ -9,13 +9,14 @@ save_path = os.path.join(project_path, "img")
 # patch_root = "/home/maling/fanqiliang/data/luna16/candidate"
 patch_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule/subset0"
 ct_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct/subset0"
-
+nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule/subset0"
+data_root = "/home/maling/fanqiliang/data/luna16/cube_ct/subset0"
 aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
-files = glob(os.path.join(aug_root, "*.npy"))
+files = glob(os.path.join(nodule_root, "*.npy"))
 
-for i in range(100):
+for i in range(1000):
     arr = np.load(files[i]).astype(np.float32)
-    ct = np.load(files[i].replace(patch_root, ct_root)).astype(np.float32)
+    ct = np.load(files[i].replace(nodule_root, data_root)).astype(np.float32)
     if len(np.where(arr > 0)[0]) > 0:
         for j, data in enumerate(arr):
             plt.figure()
