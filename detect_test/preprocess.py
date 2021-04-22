@@ -31,6 +31,10 @@ output_nodule_dir = "/home/maling/fanqiliang/data/luna16/cube_nodule"
 annotation_csv = "/home/maling/fanqiliang/lung16/CSVFILES/annotations.csv"
 
 
+# 209
+
+
+
 def divide_with_stride(arr: np.ndarray) -> List[np.ndarray]:
     """
     (n, 256, 256) -> List[(64, 64, 64)]

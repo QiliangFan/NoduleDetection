@@ -8,7 +8,7 @@ sys.path.append(project_path)
 from data_module import UnetDataModule
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import Trainer
-from network.dpn import dpn68
+from network.dpn import getdpn
 import torch.nn as nn
 import torch
 
@@ -18,10 +18,14 @@ import torch
 # nodule_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule"
 # aug_root = "/home/fanrui/fanqiliang/data/luna16/cube_aug"
 
-aug_root = "/home/maling/fanqiliang/data/luna16/cube_aug"
-data_root = "/home/maling/fanqiliang/data/luna16/cube_ct"
-nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule"
+# aug_root = "/home/maling/fanqiliang/data/luna16/cube_aug"
+# data_root = "/home/maling/fanqiliang/data/luna16/cube_ct"
+# nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule"
 
+# 209
+aug_root = "/home/nku2/fanqiliang/data/luna16/cube_aug"
+data_root = "/home/nku2/fanqiliang/data/luna16/cube_ct"
+nodule_root = "/home/nku2/fanqiliang/data/luna16/cube_nodule"
 
 def main():
     save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dpn")
@@ -31,9 +35,9 @@ def main():
                                      nodule_root=nodule_root,
                                      aug_root=aug_root)
 
-        model = dpn68(save_dir=save_dir)
+        model = getdpn(save_dir=save_dir)
         ckpt_path = os.path.join(dir_path, "ckpt", f"{fold}")
-        model_ckpt = ModelCheckpoint(dirpath=ckpt_path)
+        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="acc")
         ckpt_list = glob(os.path.join(ckpt_path, "*.ckpt"))
         if len(ckpt_list) > 0:
             ckpt_list.sort()
@@ -42,9 +46,9 @@ def main():
             ckpt = None
 
         trainer = Trainer(gpus=[1], callbacks=[model_ckpt],
-                          max_epochs=5, resume_from_checkpoint=ckpt)
+                          max_epochs=50, resume_from_checkpoint=ckpt)
 
-        # trainer.fit(model, datamodule=data_module)
+        trainer.fit(model, datamodule=data_module)
 
         trainer.test(model, datamodule=data_module, verbose=True)
 

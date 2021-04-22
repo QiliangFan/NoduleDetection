@@ -74,7 +74,7 @@ class DataModule(LightningDataModule):
 
                 self.train_pos_data_1 = Data(self.train_pos_files, label=1)
                 self.train_neg_data_1 = Data(self.sub_train_neg_files, label=0)
-
+            
             # for val
             self.test_pos_data = Data(self.test_pos_files, label=1)
             self.test_neg_data = Data(self.test_neg_files, label=0)
