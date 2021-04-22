@@ -102,7 +102,7 @@ class Resnet3D(LightningModule):
             nn.Linear(256*3, 256),
             nn.Dropout(p=dropout),
             nn.Linear(256, num_classes),
-            # nn.Sigmoid()
+            nn.Sigmoid()
         )
 
         # criterion and metric

@@ -168,6 +168,7 @@ class DPN(LightningModule):
         with torch.no_grad():
             self.acc_meter.update(out.cpu(), target.cpu())
             self.log("acc", self.acc_meter.avg, prog_bar=True)
+        self.log("loss", loss)
         return loss
 
     def training_epoch_end(self, outputs: List[Any]) -> None:

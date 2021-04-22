@@ -53,10 +53,10 @@ def main():
         # 先主要学正例，降采样负例
 
         data_module = DataModule(i, FOLD, aug_root, run_name)
-        trainer.fit(model=model, datamodule=data_module)
+        # trainer.fit(model=model, datamodule=data_module)
 
-        # trainer.test(model=model, datamodule=data_module,
-        #              verbose=True)   # 两个data module的测试数据集都是一样的
+        trainer.test(model=model, datamodule=data_module,
+                     verbose=True)   # 两个data module的测试数据集都是一样的
 
         with open(os.path.join(save_path, "eval_metrics.txt"), "a") as fp:
             print(json.dumps(trainer.logged_metrics, indent=4), file=fp)

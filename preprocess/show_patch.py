@@ -9,7 +9,9 @@ save_path = os.path.join(project_path, "img")
 # patch_root = "/home/maling/fanqiliang/data/luna16/candidate"
 patch_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule/subset0"
 ct_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct/subset0"
-files = glob(os.path.join(patch_root, "*.npy"))
+
+aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+files = glob(os.path.join(aug_root, "*.npy"))
 
 for i in range(100):
     arr = np.load(files[i]).astype(np.float32)
