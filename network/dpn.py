@@ -403,7 +403,7 @@ class DPN(LightningModule):
         loss = self.bce_loss(out, nodule)
         with torch.no_grad():
             self.acc.update(out.detach().cpu(), nodule.detach().cpu())
-        self.log("loss", loss.item())
+        self.log("loss", loss)
         self.log("acc", self.acc.avg, prog_bar=True)
         self.log("output_max", torch.max(out).item(), prog_bar=True)
         self.log("output_min", torch.min(out).item(), prog_bar=True)
@@ -459,7 +459,7 @@ class DPN(LightningModule):
         recall = tp / (tp + fn + 1e-6)
         self.log_dict({"precision": precision, "recall": recall}, prog_bar=True)
         self.acc.update(out.detach().cpu(), nodule.detach().cpu())
-        self.log("acc", self.acc.avg, prog_bar=True)
+        self.log("acc", self.acc.avg)
         return batch_idx
 
     def test_epoch_end(self, outputs):

@@ -81,7 +81,11 @@ class DataModule(LightningDataModule):
         print("train dataloader")
         # train_data = ConcatDataset(
         #     [self.train_pos_data_0, self.train_neg_data_0, self.train_pos_data_1, self.train_neg_data_1])
-        train_data = ConcatDataset([self.train_pos_data_1, self.train_neg_data_1, self.train_pos_data_0])
+        train_data = ConcatDataset([
+                                    self.train_pos_data_1, 
+                                    self.train_neg_data_1, 
+                                    self.train_pos_data_0
+                                    ])
         # train_data = self.train_pos_data
         train_data = DataLoader(
             train_data, batch_size=32, pin_memory=True, num_workers=4, shuffle=True)
