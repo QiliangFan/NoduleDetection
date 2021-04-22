@@ -53,7 +53,7 @@ def main():
         # 先主要学正例，降采样负例
 
         data_module = DataModule(i, FOLD, aug_root, run_name)
-        # trainer.fit(model=model, datamodule=data_module)
+        trainer.fit(model=model, datamodule=data_module)
 
         trainer.test(model=model, datamodule=data_module,
                      verbose=True)   # 两个data module的测试数据集都是一样的
