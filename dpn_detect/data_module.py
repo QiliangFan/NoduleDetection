@@ -1,6 +1,6 @@
 import os
 from glob import glob
-from typing import Sequence, List
+from typing import Sequence, List, Union
 
 import numpy as np
 import SimpleITK as sitk
@@ -84,6 +84,11 @@ class UnetDataModule(LightningDataModule):
             data = self.Data(self.train_files, self.train_nodule_files)
             self.data = DataLoader(
                 data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+
+            data = self.Data(self.test_files, self.test_nodule_files)
+            self.val_data = DataLoader(
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=4
+            )
         elif stage == "test":  # test
             data = self.Data(self.test_files, self.test_nodule_files)
             self.data = DataLoader(
@@ -94,3 +99,6 @@ class UnetDataModule(LightningDataModule):
 
     def test_dataloader(self):
         return self.data
+    
+    def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+        return self.val_data

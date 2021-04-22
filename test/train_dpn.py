@@ -21,7 +21,7 @@ def main():
         ckpt_path = os.path.join(dir_path, "ckpt_dpn", f"{fold}")
         if not os.path.exists(ckpt_path):
             os.makedirs(ckpt_path)
-        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="recall", verbose=True, mode="min")
+        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="acc", verbose=True)
         ckpt_list = glob(os.path.join(ckpt_path, "*.ckpt"))
         if len(ckpt_list) > 0:
             ckpt_list.sort()
@@ -33,7 +33,7 @@ def main():
                 exit(0)
 
         data_module = DataModule(fold, 10, aug_root, "dpn")
-        trainer = Trainer(gpus=[1], callbacks=[model_ckpt], max_epochs=5, resume_from_checkpoint=ckpt)
+        trainer = Trainer(gpus=[1], callbacks=[model_ckpt], max_epochs=50, resume_from_checkpoint=ckpt)
         model = getdpn(save_dir=os.path.join(dir_path, "dpn"))
 
         if stage == "train":
@@ -45,14 +45,14 @@ def main():
 
 if __name__ == "__main__":
     # 220
-    pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
-    neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
-    aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+    # pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
+    # neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
+    # aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
 
     # 209
-    # pos_root = "/home/nku2/fanqiliang/data/tmp/patch/1"
-    # neg_root = "/home/nku2/fanqiliang/data/tmp/patch/0"
-    # aug_root = "/home/nku2/fanqiliang/data/tmp/augmented_data"
+    pos_root = "/home/nku2/fanqiliang/data/tmp/patch/1"
+    neg_root = "/home/nku2/fanqiliang/data/tmp/patch/0"
+    aug_root = "/home/nku2/fanqiliang/data/tmp/augmented_data"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", default="train", type=str)

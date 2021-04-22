@@ -427,7 +427,7 @@ class DPN(LightningModule):
 
     @torch.no_grad()
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx):
-        result = self.test_operation(batch, batch_idx)
+        result = self.test_operation(batch, batch_idx, save=True)
         return result
 
     def test_epoch_end(self, outputs):
@@ -455,7 +455,7 @@ class DPN(LightningModule):
         return optim
 
     @torch.no_grad()
-    def test_operation(self, batch, batch_idx):
+    def test_operation(self, batch, batch_idx, save=False):
         ct, nodule = batch
         out = self(ct)
 
@@ -485,7 +485,8 @@ class DPN(LightningModule):
                         self.fp_meter.update(0, 1)
                         self.tn_meter.update(1, 1)
                         self.fn_meter.update(0, 1)
-                    print(_out.item(), _nodule.item(), sep=",", file=fp)
+                    if save:
+                        print(_out.item(), _nodule.item(), sep=",", file=fp)
             self.log_dict({
                 "tp": self.tp_meter.total,
                 "fp": self.fp_meter.total,
