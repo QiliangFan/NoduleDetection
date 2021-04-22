@@ -7,6 +7,7 @@ import sys
 import json
 from glob import glob
 import random
+from typing import Tuple, List, Union
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -98,3 +99,9 @@ class DataModule(LightningDataModule):
         test_data = DataLoader(test_data, batch_size=32,
                                pin_memory=True, num_workers=4, shuffle=True)
         return test_data
+
+    def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+        print("val dataloader")
+        val_data = ConcatDataset([self.test_pos_data, self.test_neg_data])
+        val_data = DataLoader(val_data, batch_size=32, pin_memory=True, num_workers=4, shuffle=True)
+        return val_data

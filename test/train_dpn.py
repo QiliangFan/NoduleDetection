@@ -21,7 +21,7 @@ def main():
         ckpt_path = os.path.join(dir_path, "ckpt_dpn", f"{fold}")
         if not os.path.exists(ckpt_path):
             os.makedirs(ckpt_path)
-        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="loss", mode='min', verbose=True)
+        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="recall", verbose=True, mode="min")
         ckpt_list = glob(os.path.join(ckpt_path, "*.ckpt"))
         if len(ckpt_list) > 0:
             ckpt_list.sort()
