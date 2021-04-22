@@ -413,7 +413,48 @@ class DPN(LightningModule):
         self.acc.reset()
 
     @torch.no_grad()
+    def validation_step(self, batch, batch_idx):
+        result = self.test_operation(batch, batch_idx)
+        return result
+
+    def validation_epoch_end(self, outputs):
+        self.tp_meter.reset()
+        self.tn_meter.reset()
+        self.fp_meter.reset()
+        self.fn_meter.reset()
+        self.acc.reset()
+
+    @torch.no_grad()
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx):
+        result = self.test_operation(batch, batch_idx)
+        return result
+
+    def test_epoch_end(self, outputs):
+
+        with open("metrics.txt", "a") as fp:
+            import json
+            result = self.trainer.logged_metrics
+            for key in result:
+                if isinstance(result[key], torch.Tensor):
+                    result[key] = result[key].item()
+            result = json.dumps(result, indent=4)
+            print(result, file=fp)
+        
+        self.acc.reset()
+        self.tp_meter.reset()
+        self.tn_meter.reset()
+        self.fp_meter.reset()
+        self.fn_meter.reset()
+
+    def configure_optimizers(self):
+        from torch.optim import SGD, Adam, Adagrad
+
+        optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
+        # optim = Adagrad(self.parameters(), lr=1e-3, lr_decay=0.95)
+        return optim
+
+    @torch.no_grad()
+    def test_operation(self, batch, batch_idx):
         ct, nodule = batch
         out = self(ct)
 
@@ -461,27 +502,3 @@ class DPN(LightningModule):
         self.acc.update(out.detach().cpu(), nodule.detach().cpu())
         self.log("acc", self.acc.avg)
         return batch_idx
-
-    def test_epoch_end(self, outputs):
-
-        with open("metrics.txt", "a") as fp:
-            import json
-            result = self.trainer.logged_metrics
-            for key in result:
-                if isinstance(result[key], torch.Tensor):
-                    result[key] = result[key].item()
-            result = json.dumps(result, indent=4)
-            print(result, file=fp)
-        
-        self.acc.reset()
-        self.tp_meter.reset()
-        self.tn_meter.reset()
-        self.fp_meter.reset()
-        self.fn_meter.reset()
-
-    def configure_optimizers(self):
-        from torch.optim import SGD, Adam, Adagrad
-
-        # optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
-        optim = Adagrad(self.parameters(), lr=1e-3, lr_decay=0.95)
-        return optim
