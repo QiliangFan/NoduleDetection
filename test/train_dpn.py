@@ -33,14 +33,15 @@ def main():
                 exit(0)
 
         data_module = DataModule(fold, 10, aug_root, "dpn")
-        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=5, resume_from_checkpoint=ckpt)
+        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=40, resume_from_checkpoint=ckpt)
         model = getdpn(save_dir=os.path.join(dir_path, "dpn"))
 
         if stage == "train":
             trainer.fit(model, datamodule=data_module)
+            trainer.test(model, datamodule=data_module, verbose=True)
         else:
             trainer.test(model, datamodule=data_module, verbose=True)
-
+        trainer.checkpoint_callback.best_model_path
 
 if __name__ == "__main__":
     # 220

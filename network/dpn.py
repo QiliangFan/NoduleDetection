@@ -175,7 +175,7 @@ def dpn107(pretrained=False, test_time_pool=False, **kwargs):
 
 
 class CatBnAct(nn.Module):
-    def __init__(self, in_chs, activation_fn=nn.ReLU(inplace=True)):
+    def __init__(self, in_chs, activation_fn=nn.LeakyReLU(inplace=True)):
         super(CatBnAct, self).__init__()
         self.bn = nn.BatchNorm3d(in_chs, eps=0.001)
         self.act = activation_fn
@@ -187,7 +187,7 @@ class CatBnAct(nn.Module):
 
 class BnActConv3d(nn.Module):
     def __init__(self, in_chs, out_chs, kernel_size, stride,
-                 padding=0, groups=1, activation_fn=nn.ReLU(inplace=True)):
+                 padding=0, groups=1, activation_fn=nn.LeakyReLU(inplace=True)):
         super(BnActConv3d, self).__init__()
         self.bn = nn.BatchNorm3d(in_chs, eps=0.001)
         self.act = activation_fn
@@ -200,7 +200,7 @@ class BnActConv3d(nn.Module):
 
 class InputBlock(nn.Module):
     def __init__(self, num_init_features, kernel_size=7,
-                 padding=3, activation_fn=nn.ReLU(inplace=True)):
+                 padding=3, activation_fn=nn.LeakyReLU(inplace=True)):
         super(InputBlock, self).__init__()
         self.conv = nn.Conv3d(
             1, num_init_features, kernel_size=kernel_size, stride=2, padding=padding, bias=False)
@@ -256,6 +256,8 @@ class DualPathBlock(nn.Module):
         else:
             self.c1x1_c = BnActConv3d(
                 in_chs=num_3x3_b, out_chs=num_1x1_c + inc, kernel_size=1, stride=1)
+
+        self.dropout = nn.Dropout3d()
 
     def forward(self, x):
         x_in = torch.cat(x, dim=1) if isinstance(x, tuple) else x
@@ -402,6 +404,7 @@ class DPN(LightningModule):
         loss = self.bce_loss(out, nodule)
         with torch.no_grad():
             self.acc.update(out.detach().cpu(), nodule.detach().cpu())
+        self.log("loss", loss.item())
         self.log("acc", self.acc.avg, prog_bar=True)
         self.log("output_max", torch.max(out).item(), prog_bar=True)
         self.log("output_min", torch.min(out).item(), prog_bar=True)
@@ -448,11 +451,6 @@ class DPN(LightningModule):
                 "tn": self.tn_meter.total,
                 "fn": self.fn_meter.total,
             }, prog_bar=True)
-        self.acc.update(out.detach().cpu(), nodule.detach().cpu())
-        self.log("acc", self.acc.avg, prog_bar=True)
-        return batch_idx
-
-    def test_epoch_end(self, outputs):
         tp = self.tp_meter.total
         tn = self.tn_meter.total
         fp = self.fp_meter.total
@@ -461,6 +459,11 @@ class DPN(LightningModule):
         precision = tp / (tp + fp + 1e-6)
         recall = tp / (tp + fn + 1e-6)
         self.log_dict({"precision": precision, "recall": recall}, prog_bar=True)
+        self.acc.update(out.detach().cpu(), nodule.detach().cpu())
+        self.log("acc", self.acc.avg, prog_bar=True)
+        return batch_idx
+
+    def test_epoch_end(self, outputs):
 
         with open("metrics.txt", "a") as fp:
             import json
@@ -478,8 +481,8 @@ class DPN(LightningModule):
         self.fn_meter.reset()
 
     def configure_optimizers(self):
-        from torch.optim import SGD, Adam
+        from torch.optim import SGD, Adam, Adagrad
 
         # optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
-        optim = Adam(self.parameters(), lr=1e-3)
+        optim = Adagrad(self.parameters(), lr=1e-3, lr_decay=0.95)
         return optim
