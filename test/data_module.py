@@ -56,7 +56,7 @@ class DataModule(LightningDataModule):
         self.run_name = run_name
         # subsample
         self.sub_train_neg_files = random.sample(
-            self.train_neg_files, len(self.train_neg_files)//5)
+            self.train_neg_files, len(self.train_neg_files)//8)
         print(f"Pos nums: {len(self.train_pos_files)}; Sub_neg nums: {len(self.sub_train_neg_files)}")
 
     def setup(self, stage):
@@ -89,7 +89,6 @@ class DataModule(LightningDataModule):
         train_data = ConcatDataset([
             self.train_pos_data_1, 
             self.train_neg_data_1, 
-            self.train_pos_data_0
             ])
         # train_data = self.train_pos_data
         train_data = DataLoader(

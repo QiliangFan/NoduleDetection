@@ -39,11 +39,11 @@ def main():
             ckpt = None
 
         checkpoint_callback = ModelCheckpoint(
-            dirpath=f"{checkpoint_root}/fold{i}", monitor="accuracy")
+            dirpath=f"{checkpoint_root}/fold{i}", monitor="recall")
         logger = TensorBoardLogger(
             f"{save_path}/resnet3d_logs/fold{i}", name="10-fold")
 
-        epoch = 100
+        epoch = 20
         trainer = Trainer(gpus=[0 if run_name == "sub_last" else 1], logger=logger, callbacks=[
                           checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt)
 

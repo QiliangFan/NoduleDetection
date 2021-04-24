@@ -36,7 +36,8 @@ class UnetDataModule(LightningDataModule):
                 nodule_arr: np.ndarray = np.load(
                     self.nodule_list[idx]).astype((np.float32))
                 nodule_arr = nodule_arr.reshape((1, *nodule_arr.shape))
-            return torch.as_tensor(arr), torch.as_tensor(nodule_arr)
+            label = 1 if np.any(nodule_arr > 0) else 0
+            return torch.as_tensor(arr), torch.as_tensor(label, dtype=torch.float32)
 
         def __len__(self):
             return len(self.data_list)
@@ -80,6 +81,11 @@ class UnetDataModule(LightningDataModule):
             data = self.Data(self.train_files, self.train_nodule_files)
             self.data = DataLoader(
                 data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+
+            data = self.Data(self.test_files, self.test_nodule_files)
+            self.val_data = DataLoader(
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+
         elif stage == "test":  # test
             data = self.Data(self.test_files, self.test_nodule_files)
             self.data = DataLoader(
@@ -90,3 +96,6 @@ class UnetDataModule(LightningDataModule):
 
     def test_dataloader(self):
         return self.data
+
+    def val_dataloader(self):
+        return self.val_data

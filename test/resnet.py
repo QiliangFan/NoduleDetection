@@ -106,7 +106,8 @@ class Resnet3D(LightningModule):
         )
 
         # criterion and metric
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
+        # self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
+        self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
         self.fp_meter = AverageMeter()
@@ -194,6 +195,7 @@ class Resnet3D(LightningModule):
     def configure_optimizers(self):
         opt = optim.Adam(self.parameters(), 
                         lr=1e-3, 
+                        weight_decay=1e-4
                         # momentum=0.2, 
                         # weight_decay=1e-4
                         )
@@ -210,20 +212,20 @@ class Resnet3D(LightningModule):
             output, target = output.cpu(), target.cpu()
         # tp
         tmp_output = output > 0.5
-        tps = (tmp_output * target).sum()
+        tps = int((tmp_output * target).sum())
 
         # fp
         tmp_target = target < 1
-        fps = (tmp_output * tmp_target).sum()
+        fps = int((tmp_output * tmp_target).sum())
 
         # tn
         tmp_output = output <= 0.5
         tmp_target = target < 1
-        tns = (tmp_output * tmp_target).sum()
+        tns = int((tmp_output * tmp_target).sum())
 
         # fn
         tmp_output = output <= 0.5
-        fns = (tmp_output * target).sum()
+        fns = int((tmp_output * target).sum())
 
         # acc
         tmp_output = output > 0.5
