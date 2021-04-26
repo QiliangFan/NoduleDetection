@@ -34,7 +34,7 @@ def main():
             ckpt = None
         model = LeNet((64, 64, 64), save_dir=save_path)
         model_ckpt = ModelCheckpoint(filepath=ckpt_path, monitor="recall")
-        trainer = Trainer(gpus=[1], callbacks=[model_ckpt], max_epochs=50, resume_from_checkpoint=ckpt, logger=logger)
+        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=50, resume_from_checkpoint=ckpt, logger=logger)
 
         # data_module = DataModule(fold, fold_num=10, aug_root=aug_root, run_name="lenet")
         data_module = UnetDataModule(fold, data_root=data_root, nodule_root=nodule_root, aug_root=aug_root, batch_size=32)

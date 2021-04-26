@@ -62,18 +62,12 @@ class DataModule(LightningDataModule):
     def setup(self, stage):
         print(f"datamodule stage: ", stage)
         if stage in "fit":
-            if self.run_name == "sub_first":
-                self.train_pos_data_0 = Data(self.train_pos_files, label=1)
-                self.train_neg_data_0 = Data(self.sub_train_neg_files, label=0)
 
-                self.train_pos_data_1 = Data(self.train_pos_files, label=1)
-                self.train_neg_data_1 = Data(self.train_neg_files, label=0)
-            else:
-                self.train_pos_data_0 = Data(self.train_pos_files, label=1)
-                self.train_neg_data_0 = Data(self.train_neg_files, label=0)
+            self.train_pos_data_0 = Data(self.train_pos_files, label=1)
+            self.train_neg_data_0 = Data(self.sub_train_neg_files, label=0)
 
-                self.train_pos_data_1 = Data(self.train_pos_files, label=1)
-                self.train_neg_data_1 = Data(self.sub_train_neg_files, label=0)
+            self.train_pos_data_1 = Data(self.train_pos_files, label=1)
+            self.train_neg_data_1 = Data(self.train_neg_files, label=0)
             
             # for val
             self.test_pos_data = Data(self.test_pos_files, label=1)
@@ -88,7 +82,7 @@ class DataModule(LightningDataModule):
         #     [self.train_pos_data_0, self.train_neg_data_0, self.train_pos_data_1, self.train_neg_data_1])
         train_data = ConcatDataset([
             self.train_pos_data_1, 
-            self.train_neg_data_1, 
+            self.train_neg_data_0, 
             ])
         # train_data = self.train_pos_data
         train_data = DataLoader(

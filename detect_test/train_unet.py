@@ -8,7 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 import argparse
 
-from data_module import UnetDataModule
+from data_module1 import UnetDataModule
 from unet import Unet
 
 dir_root = os.path.dirname(os.path.abspath(__file__))
@@ -45,6 +45,8 @@ def main():
         # train and test
         if stage == "train":
             trainer.fit(model, datamodule=data_module)
+
+            trainer.test(model, datamodule=data_module, verbose=True)
         else:
             trainer.test(model, datamodule=data_module, verbose=True)
 

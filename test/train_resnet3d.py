@@ -82,5 +82,5 @@ if __name__ == "__main__":
 
     FOLD = 10
 
-    DROPOUT = 0.2
+    DROPOUT = 0.5
     main()

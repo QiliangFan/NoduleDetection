@@ -65,43 +65,48 @@ class Resnet3D(LightningModule):
         self.save_root = save_root
         self.verbose = verbose
         # 1*24*40*40
+
+        num_feature = 2
         self.block1 = nn.Conv3d(in_channel,
-                                16, 
+                                num_feature, 
                                 (1, 1, 1),
                                 stride=1)  # 16*48*48*48
         self.block2 = nn.Sequential(
-            ResBlock(16, 32, 2),  # 16*24
+            ResBlock(num_feature, num_feature*2, stride=2),  # 16*24
             nn.Dropout3d(p=dropout),
-            ResBlock(32, 32), 
+            ResBlock(num_feature*2, num_feature*2), 
             nn.Dropout3d(p=dropout),
             # nn.MaxPool3d((2, 2, 2), stride=2),  # 16*12
         )
+        num_feature *= 2
         self.block3 = nn.Sequential(
-            ResBlock(32, 64, stride=2), # 32*12
+            ResBlock(num_feature, num_feature*2, stride=2), # 32*12
             nn.Dropout3d(p=dropout),
-            ResBlock(64, 64),
+            ResBlock(num_feature*2, num_feature*2),
             nn.Dropout3d(p=dropout),
             # nn.MaxPool3d((2, 2, 2), stride=2),  # 32*6
         )
+        num_feature *= 2
         self.block4 = nn.Sequential(
-            ResBlock(64, 128, stride=2), # 64*6
+            ResBlock(num_feature, num_feature*2, stride=2), # 64*6
             nn.Dropout3d(p=dropout),
-            ResBlock(128, 128),
+            ResBlock(num_feature*2, num_feature*2),
             nn.Dropout3d(p=dropout),
         )
+        num_feature *= 2
         self.block5 = nn.Sequential(
-            ResBlock(128, 256, stride=2), # 128*3
+            ResBlock(num_feature, num_feature*2, stride=2), # 128*3
             nn.Dropout(p=dropout),
-            ResBlock(256, 256),
+            ResBlock(num_feature*2, num_feature*2),
             nn.Dropout(p=dropout),
             nn.AdaptiveAvgPool3d((3, 1, 1))
         )
-
+        num_feature *= 2
         self.fc = Sequential(
             nn.Flatten(),
-            nn.Linear(256*3, 256),
+            nn.Linear(num_feature*3, num_feature),
             nn.Dropout(p=dropout),
-            nn.Linear(256, num_classes),
+            nn.Linear(num_feature, num_classes),
             nn.Sigmoid()
         )
 
@@ -115,25 +120,10 @@ class Resnet3D(LightningModule):
         self.fn_meter = AverageMeter()
 
     def forward(self, x: torch.Tensor):
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"0input", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block1(x)
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"1block1", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block2(x)
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"2block2", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block3(x)
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"3block3", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block4(x)
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"4block4", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block5(x)
         x = self.fc(x)
         return x
@@ -143,29 +133,10 @@ class Resnet3D(LightningModule):
         data, target = batch
         out = self(data)
         loss = self.criterion(out, target)
-        if self.verbose:
-            self.precision_recall(out, target)
         return loss
 
-    def training_step_end(self, output):
-        if self.verbose:
-            self.log_dict({
-                "tp": self.tp_meter.sum,
-                "fp": self.fp_meter.sum,
-                "tn": self.tn_meter.sum,
-                "fn": self.fn_meter.sum
-            }, prog_bar=True, on_epoch=False, on_step=True)
-        return output
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
-        if self.verbose:
-            precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
-            recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
-            self.log_dict({
-                "precision": precision,
-                "recall": recall,
-                "accuracy": self.acc_meter.avg
-            }, prog_bar=True)
         self.acc_meter.reset()
         self.tp_meter.reset()
         self.fp_meter.reset()
@@ -212,20 +183,20 @@ class Resnet3D(LightningModule):
             output, target = output.cpu(), target.cpu()
         # tp
         tmp_output = output > 0.5
-        tps = int((tmp_output * target).sum())
+        tps = int((tmp_output * target).sum().item())
 
         # fp
         tmp_target = target < 1
-        fps = int((tmp_output * tmp_target).sum())
+        fps = int((tmp_output * tmp_target).sum().item())
 
         # tn
         tmp_output = output <= 0.5
         tmp_target = target < 1
-        tns = int((tmp_output * tmp_target).sum())
+        tns = int((tmp_output * tmp_target).sum().item())
 
         # fn
         tmp_output = output <= 0.5
-        fns = int((tmp_output * target).sum())
+        fns = int((tmp_output * target).sum().item())
 
         # acc
         tmp_output = output > 0.5
@@ -258,8 +229,8 @@ class Resnet3D(LightningModule):
             "precision": precision,
             "recall": recall,
             "accuracy": self.acc_meter.avg,
-            "tp": self.tp_meter.sum,
-            "fp": self.fp_meter.sum,
-            "tn": self.tn_meter.sum,
-            "fn": self.fn_meter.sum
+            "tp": int(self.tp_meter.sum),
+            "fp": int(self.fp_meter.sum),
+            "tn": int(self.tn_meter.sum),
+            "fn": int(self.fn_meter.sum)
         }, prog_bar=True)
