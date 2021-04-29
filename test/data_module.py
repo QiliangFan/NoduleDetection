@@ -56,7 +56,7 @@ class DataModule(LightningDataModule):
         self.run_name = run_name
         # subsample
         self.sub_train_neg_files = random.sample(
-            self.train_neg_files, len(self.train_neg_files)//8)
+            self.train_neg_files, len(self.train_neg_files)//5)
         print(f"Pos nums: {len(self.train_pos_files)}; Sub_neg nums: {len(self.sub_train_neg_files)}")
 
     def setup(self, stage):

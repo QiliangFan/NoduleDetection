@@ -69,8 +69,9 @@ class Resnet3D(LightningModule):
         num_feature = 2
         self.block1 = nn.Conv3d(in_channel,
                                 num_feature, 
-                                (1, 1, 1),
-                                stride=1)  # 16*48*48*48
+                                (7, 7, 7),
+                                stride=1,
+                                padding=3)  # 16*48*48*48
         self.block2 = nn.Sequential(
             ResBlock(num_feature, num_feature*2, stride=2),  # 16*24
             nn.Dropout3d(p=dropout),
@@ -111,8 +112,8 @@ class Resnet3D(LightningModule):
         )
 
         # criterion and metric
-        # self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
-        self.criterion = nn.BCELoss()
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
+        # self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
         self.fp_meter = AverageMeter()
@@ -147,6 +148,17 @@ class Resnet3D(LightningModule):
         self.test_operation(batch, batch_idx)
 
     def validation_epoch_end(self, outputs: List[Any]) -> None:
+        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
+        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
+        self.log_dict({
+            "precision": precision,
+            "recall": recall,
+            "accuracy": self.acc_meter.avg,
+            "tp": int(self.tp_meter.sum),
+            "fp": int(self.fp_meter.sum),
+            "tn": int(self.tn_meter.sum),
+            "fn": int(self.fn_meter.sum)
+        }, prog_bar=True)
         self.acc_meter.reset()
         self.tp_meter.reset()
         self.fp_meter.reset()
@@ -157,6 +169,17 @@ class Resnet3D(LightningModule):
         self.test_operation(batch, batch_idx, save=True)
 
     def test_epoch_end(self, outputs: List[Any]) -> None:
+        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
+        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
+        self.log_dict({
+            "precision": precision,
+            "recall": recall,
+            "accuracy": self.acc_meter.avg,
+            "tp": int(self.tp_meter.sum),
+            "fp": int(self.fp_meter.sum),
+            "tn": int(self.tn_meter.sum),
+            "fn": int(self.fn_meter.sum)
+        }, prog_bar=True)
         self.acc_meter.reset()
         self.tp_meter.reset()
         self.fp_meter.reset()
