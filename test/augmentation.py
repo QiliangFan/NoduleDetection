@@ -9,12 +9,15 @@ import pandas as pd
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
 
-dst_root = "/home/maling/fanqiliang/data/tmp"
+# dst_root = "/home/maling/fanqiliang/data/tmp"
+dst_root = "/home/maling/fanqiliang/data/tmp64"
+
 dst_ct_root = os.path.join(dst_root, "ct")
 seg_root = "/home/maling/fanqiliang/lung16/seg-lungs-LUNA16"
 candidate_file = "/home/maling/fanqiliang/lung16/CSVFILES/candidates_V2.csv"
 
-aug_patch_root = "/home/maling/fanqiliang/data/tmp/augmented_data"  # augmented data
+# aug_patch_root = "/home/maling/fanqiliang/data/tmp/augmented_data"  # augmented data
+aug_patch_root = "/home/maling/fanqiliang/data/tmp64/augmented_data"  # augmented data
 if not os.path.exists(aug_patch_root):
     os.mkdir(aug_patch_root)
 
@@ -27,7 +30,8 @@ def work(sid, x, y, z, cls, I):
     arr = sitk.GetArrayFromImage(img)
     output = arr.copy()
     shape = np.asarray(arr.shape)
-    z_r, y_r, x_r = 24, 24, 24
+    # z_r, y_r, x_r = 24, 24, 24
+    z_r, y_r, x_r = 32, 32, 32
     i, j, k = img.TransformPhysicalPointToIndex([x, y, z])
     flip_op = [
         0,

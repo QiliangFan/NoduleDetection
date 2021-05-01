@@ -9,11 +9,14 @@ from multiprocessing import Pool
 import pandas as pd
 
 # path
-dst_root = "/home/maling/fanqiliang/data/tmp"
+# dst_root = "/home/maling/fanqiliang/data/tmp"
+dst_root = "/home/maling/fanqiliang/data/tmp64"
 dst_ct_root = os.path.join(dst_root, "ct")
-patch_root = "/home/maling/fanqiliang/data/tmp/patch"   # patched root 
+# patch_root = "/home/maling/fanqiliang/data/tmp/patch"   # patched root 
+patch_root = "/home/maling/fanqiliang/data/tmp64/patch"   # patched root 
 # patch_root = "/home/maling/fanqiliang/data/mask"
-aug_patch_root = "/home/maling/fanqiliang/data/tmp/augmented_data"  # augmented data
+# aug_patch_root = "/home/maling/fanqiliang/data/tmp/augmented_data"  # augmented data
+aug_patch_root = "/home/maling/fanqiliang/data/tmp64/augmented_data"  # augmented data
 
 if not os.path.exists(dst_ct_root):
     os.makedirs(dst_ct_root)
@@ -68,7 +71,8 @@ def candidate_worker(sid, x, y, z, cls, I):
     """
     (24, 40, 40)
     """
-    z_r, y_r, x_r = 24, 24, 24
+    # z_r, y_r, x_r = 24, 24, 24
+    z_r, y_r, x_r = 32, 32, 32
     
     class_dir = os.path.join(patch_root, f"{cls}")
     if not os.path.exists(class_dir):
@@ -141,6 +145,6 @@ def patch_work():
         pool.join()
 
 if __name__ == "__main__":
-    ct_work()
+    # ct_work()
 
     patch_work() 

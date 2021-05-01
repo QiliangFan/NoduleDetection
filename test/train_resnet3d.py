@@ -17,7 +17,7 @@ from glob import glob
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 import argparse
 from torch.utils.data.dataset import ConcatDataset
-
+from detect_test.data_module import UnetDataModule
 
 
 def main():
@@ -39,33 +39,46 @@ def main():
             ckpt = None
 
         checkpoint_callback = ModelCheckpoint(
-            dirpath=f"{checkpoint_root}/fold{i}", monitor="accuracy", mode="max", save_top_k=1)
+            dirpath=f"{checkpoint_root}/fold{i}", monitor="precision", mode="max", save_top_k=1)
         logger = TensorBoardLogger(
             f"{save_path}/resnet3d_logs/fold{i}", name="10-fold")
 
-        epoch = 100
-        trainer = Trainer(gpus=[0 if run_name == "sub_last" else 1], logger=logger, callbacks=[
-                          checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt)
+        epoch = 50
+        # trainer = Trainer(gpus=[0 if run_name == "sub_last" else 1], logger=logger, callbacks=[
+        #                   checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt, benchmark=True)
+        trainer = Trainer(gpus=1, logger=logger, callbacks=[
+                          checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt, benchmark=True)
 
         model = Resnet3D(in_channel=1, num_classes=1,
                          dropout=DROPOUT, save_root=save_path)
 
         # 先主要学正例，降采样负例
 
-        data_module = DataModule(i, FOLD, aug_root, run_name)
+        data_module = DataModule(i, FOLD, tmp_aug_root, run_name)
+        test_data_module = UnetDataModule(i, data_root=data_root, nodule_root=nodule_root, aug_root=aug_root, total_fold=10, batch_size=32)
         trainer.fit(model=model, datamodule=data_module)
 
-        trainer.test(model=model, datamodule=data_module,
+        trainer.test(model=model, datamodule=test_data_module,
                      verbose=True)   # 两个data module的测试数据集都是一样的
 
         with open(os.path.join(save_path, "eval_metrics.txt"), "a") as fp:
-            print(json.dumps(trainer.logged_metrics, indent=4), file=fp)
+            print(json.dumps(trainer.metrics_to_scalars(trainer.logged_metrics), indent=4), file=fp)
 
 
 if __name__ == "__main__":
-    pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
-    neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
-    aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+    # 48
+    # tmp_pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
+    # tmp_neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
+    # tmp_aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+
+    # 64
+    tmp_pos_root = "/home/maling/fanqiliang/data/tmp64/patch/1"
+    tmp_neg_root = "/home/maling/fanqiliang/data/tmp64/patch/0"
+    tmp_aug_root = "/home/maling/fanqiliang/data/tmp64/augmented_data"
+
+    aug_root = "/home/maling/fanqiliang/data/luna16/cube_aug"
+    data_root = "/home/maling/fanqiliang/data/luna16/cube_ct"
+    nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule" 
 
     metric_file = os.path.join(project_path, "test", "resnet3d.json")
     # train = True
@@ -82,5 +95,5 @@ if __name__ == "__main__":
 
     FOLD = 10
 
-    DROPOUT = 0.5
+    DROPOUT = 0
     main()

@@ -35,15 +35,16 @@ def main():
 
         # data_module = DataModule(fold, 10, aug_root, "dpn")
         data_module = UnetDataModule(fold, data_root=data_root, nodule_root=nodule_root, aug_root=aug_root, total_fold=10, batch_size=32)
-        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=50, resume_from_checkpoint=ckpt)
+        trainer = Trainer(gpus=[0], callbacks=[model_ckpt], max_epochs=34, resume_from_checkpoint=ckpt)
         model = getdpn(save_dir=os.path.join(dir_path, "dpn"))
 
+        trainer
         if stage == "train":
             trainer.fit(model, datamodule=data_module)
+            # trainer.fit(model)
             trainer.test(model, datamodule=data_module, verbose=True)
         else:
-            trainer.test(model, datamodule=data_module, verbose=True)
-        trainer.checkpoint_callback.best_model_path
+            trainer.test(model, datamodule=data_module, verbose=True, ckpt_path=ckpt)
 
 if __name__ == "__main__":
     # 220
