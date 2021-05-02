@@ -28,7 +28,7 @@ class Data(Dataset):
         arr = np.load(file).astype(np.float32)
         arr = torch.from_numpy(arr)
         arr.unsqueeze_(dim=0)
-        label = torch.as_tensor(1)
+        label = torch.as_tensor([1])
         return "a", arr, label * self.label
 
     def __len__(self):
