@@ -43,13 +43,13 @@ def main():
         logger = TensorBoardLogger(
             f"{save_path}/resnet3d_logs/fold{i}", name="10-fold")
 
-        epoch = 50
+        epoch = 5
         # trainer = Trainer(gpus=[0 if run_name == "sub_last" else 1], logger=logger, callbacks=[
         #                   checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt, benchmark=True)
         trainer = Trainer(gpus=1, logger=logger, callbacks=[
                           checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt, benchmark=True)
 
-        model = Resnet3D(in_channel=1, num_classes=2,
+        model = Resnet3D(in_channel=1, num_classes=1,
                          dropout=DROPOUT, save_root=save_path)
 
         # 先主要学正例，降采样负例

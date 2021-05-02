@@ -113,7 +113,7 @@ class Resnet3D(LightningModule):
         )
 
         # criterion and metric
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2, 1]))
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([5, 1]))
         # self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
@@ -176,8 +176,8 @@ class Resnet3D(LightningModule):
         return batch_idx
 
     def test_epoch_end(self, outputs: List[Any]) -> None:
-        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
-        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
+        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-9)
+        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-9)
         self.log_dict({
             "precision": precision,
             "recall": recall,
@@ -216,8 +216,9 @@ class Resnet3D(LightningModule):
 
     @torch.no_grad()
     def precision_recall(self, output: torch.Tensor, target: torch.Tensor):
-        if hasattr(output, "cpu") and hasattr(target, "cpu"):
-            output, target = output.cpu(), target.cpu()
+        # if hasattr(output, "cpu") and hasattr(target, "cpu"):
+        #     output, target = output.cpu(), target.cpu()
+        cp_out, cp_target = output.detach(), target.detach()
         tps = 0
         fps = 0
         tns = 0
@@ -225,56 +226,28 @@ class Resnet3D(LightningModule):
         total_acc = 0
         total = 0
 
-        for out, tg in zip(output, target):
-            pred = -1
-            if out[1] > out[0]:
+        for _out, _tg in zip(cp_out, cp_target):
+            if _out > 0.5:
                 pred = 1
             else:
                 pred = 0
-            
-            label = -1
-            if tg[0] == 1:
-                label = 0
-            else:
+            if _tg > 0:
                 label = 1
-
+            else:
+                label = 0
+            
             total += 1
             if pred == label:
                 total_acc += 1
-                if pred > 0:
+                if label == 1:
                     tps += 1
                 else:
                     tns += 1
             else:
-                if pred > 0:
+                if label == 1:
                     fps += 1
                 else:
                     fns += 1
-        # # tp
-        # tmp_output = output > 0.5
-        # tps = int((tmp_output * target).sum().item())
-
-        # # fp
-        # tmp_target = target < 1
-        # fps = int((tmp_output * tmp_target).sum().item())
-
-        # # tn
-        # tmp_output = output <= 0.5
-        # tmp_target = target < 1
-        # tns = int((tmp_output * tmp_target).sum().item())
-
-        # # fn
-        # tmp_output = output <= 0.5
-        # fns = int((tmp_output * target).sum().item())
-
-        # acc
-        # tmp_output = output > 0.5
-        # acc_pos = (tmp_output * target).sum()
-        # tmp_output = output <= 0.5
-        # tmp_target = target < 1
-        # acc_neg = (tmp_output * tmp_target).sum()
-        # totals = target.numel()
-        # self.acc_meter.update(acc_pos+acc_neg, totals)
 
         self.acc_meter.update(total_acc, total)
 

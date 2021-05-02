@@ -28,9 +28,8 @@ class Data(Dataset):
         arr = np.load(file).astype(np.float32)
         arr = torch.from_numpy(arr)
         arr.unsqueeze_(dim=0)
-        label = torch.zeros((2,))
-        label[int(self.label)] = 1
-        return "a", arr, label
+        label = torch.as_tensor(1)
+        return "a", arr, label * self.label
 
     def __len__(self):
         return len(self.files)
@@ -66,9 +65,9 @@ class DataModule(LightningDataModule):
         if stage in "fit":
 
             self.train_pos_data_0 = Data(self.train_pos_files, label=1)
-            self.train_neg_data_0 = Data(self.sub_train_neg_files, label=0)
+            self.train_neg_data_0 = Data(self.sub_train_neg_files[:5000], label=0)
 
-            self.train_pos_data_1 = Data(self.train_pos_files, label=1)
+            self.train_pos_data_1 = Data(self.train_pos_files[:5000], label=1)
             self.train_neg_data_1 = Data(self.train_neg_files, label=0)
             
             # for val
