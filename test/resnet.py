@@ -150,6 +150,20 @@ class Resnet3D(LightningModule):
         return batch_idx
 
     def validation_epoch_end(self, outputs: List[Any]) -> None:
+        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
+        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
+        self.log_dict({
+            "precision": precision,
+            "recall": recall,
+            "accuracy": self.acc_meter.avg,
+        }, prog_bar=True, on_step=True)
+
+        self.log_dict({
+            "tp": self.tp_meter.sum,
+            "fp": self.fp_meter.sum,
+            "tn": self.tn_meter.sum,
+            "fn": self.fn_meter.sum
+        }, on_step=True)
 
         self.acc_meter.reset()
         self.tp_meter.reset()
@@ -162,6 +176,21 @@ class Resnet3D(LightningModule):
         return batch_idx
 
     def test_epoch_end(self, outputs: List[Any]) -> None:
+        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
+        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
+        self.log_dict({
+            "precision": precision,
+            "recall": recall,
+            "accuracy": self.acc_meter.avg,
+        }, prog_bar=True)
+
+        self.log_dict({
+            "tp": self.tp_meter.sum,
+            "fp": self.fp_meter.sum,
+            "tn": self.tn_meter.sum,
+            "fn": self.fn_meter.sum
+        }, prog_bar=True)
+
         self.acc_meter.reset()
         self.tp_meter.reset()
         self.fp_meter.reset()
@@ -265,17 +294,4 @@ class Resnet3D(LightningModule):
                 for v, l in zip(out[:, 1].cpu().squeeze().tolist(), target[:, 1].cpu().squeeze().tolist()):
                     print(v, l, sep=",", file=fp)
 
-        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
-        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
-        self.log_dict({
-            "precision": precision,
-            "recall": recall,
-            "accuracy": self.acc_meter.avg,
-        }, prog_bar=True, on_step=True)
 
-        self.log_dict({
-            "tp": self.tp_meter.sum,
-            "fp": self.fp_meter.sum,
-            "tn": self.tn_meter.sum,
-            "fn": self.fn_meter.sum
-        }, on_step=True)
