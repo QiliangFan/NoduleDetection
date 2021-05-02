@@ -156,14 +156,14 @@ class Resnet3D(LightningModule):
             "precision": precision,
             "recall": recall,
             "accuracy": self.acc_meter.avg,
-        }, prog_bar=True, on_step=True)
-
+        }, prog_bar=True)
+        
         self.log_dict({
             "tp": self.tp_meter.sum,
             "fp": self.fp_meter.sum,
             "tn": self.tn_meter.sum,
             "fn": self.fn_meter.sum
-        }, on_step=True)
+        }, prog_bar=True)
 
         self.acc_meter.reset()
         self.tp_meter.reset()
