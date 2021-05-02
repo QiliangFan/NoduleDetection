@@ -113,7 +113,7 @@ class Resnet3D(LightningModule):
         )
 
         # criterion and metric
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([5, 1]))
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([10]))
         # self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
