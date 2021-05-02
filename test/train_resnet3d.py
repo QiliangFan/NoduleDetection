@@ -49,7 +49,7 @@ def main():
         trainer = Trainer(gpus=1, logger=logger, callbacks=[
                           checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt, benchmark=True)
 
-        model = Resnet3D(in_channel=1, num_classes=1,
+        model = Resnet3D(in_channel=1, num_classes=2,
                          dropout=DROPOUT, save_root=save_path)
 
         # 先主要学正例，降采样负例

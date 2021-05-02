@@ -113,7 +113,7 @@ class Resnet3D(LightningModule):
         )
 
         # criterion and metric
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([1]))
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2, 1]))
         # self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
@@ -173,7 +173,7 @@ class Resnet3D(LightningModule):
                         lr=1e-3, 
                         weight_decay=1e-4,
                         eps=1e-3,
-                        amsgrad=True
+                        amsgrad=False
                         # momentum=0.2, 
                         # weight_decay=1e-4
                         )
@@ -189,31 +189,65 @@ class Resnet3D(LightningModule):
     def precision_recall(self, output: torch.Tensor, target: torch.Tensor):
         if hasattr(output, "cpu") and hasattr(target, "cpu"):
             output, target = output.cpu(), target.cpu()
-        # tp
-        tmp_output = output > 0.5
-        tps = int((tmp_output * target).sum().item())
+        tps = 0
+        fps = 0
+        tns = 0
+        fns = 0
+        total_acc = 0
+        total = 0
 
-        # fp
-        tmp_target = target < 1
-        fps = int((tmp_output * tmp_target).sum().item())
+        for out, tg in zip(output, target):
+            pred = -1
+            if out[1] > out[0]:
+                pred = 1
+            else:
+                pred = 0
+            
+            label = -1
+            if tg[0] == 1:
+                label = 0
+            else:
+                label = 1
 
-        # tn
-        tmp_output = output <= 0.5
-        tmp_target = target < 1
-        tns = int((tmp_output * tmp_target).sum().item())
+            total += 1
+            if pred == label:
+                total_acc += 1
+                if pred > 0:
+                    tps += 1
+                else:
+                    tns += 1
+            else:
+                if pred > 0:
+                    fps += 1
+                else:
+                    fns += 1
+        # # tp
+        # tmp_output = output > 0.5
+        # tps = int((tmp_output * target).sum().item())
 
-        # fn
-        tmp_output = output <= 0.5
-        fns = int((tmp_output * target).sum().item())
+        # # fp
+        # tmp_target = target < 1
+        # fps = int((tmp_output * tmp_target).sum().item())
+
+        # # tn
+        # tmp_output = output <= 0.5
+        # tmp_target = target < 1
+        # tns = int((tmp_output * tmp_target).sum().item())
+
+        # # fn
+        # tmp_output = output <= 0.5
+        # fns = int((tmp_output * target).sum().item())
 
         # acc
-        tmp_output = output > 0.5
-        acc_pos = (tmp_output * target).sum()
-        tmp_output = output <= 0.5
-        tmp_target = target < 1
-        acc_neg = (tmp_output * tmp_target).sum()
-        totals = target.numel()
-        self.acc_meter.update(acc_pos+acc_neg, totals)
+        # tmp_output = output > 0.5
+        # acc_pos = (tmp_output * target).sum()
+        # tmp_output = output <= 0.5
+        # tmp_target = target < 1
+        # acc_neg = (tmp_output * tmp_target).sum()
+        # totals = target.numel()
+        # self.acc_meter.update(acc_pos+acc_neg, totals)
+
+        self.acc_meter.update(total_acc, total)
 
         self.tp_meter.update(tps)
         self.fp_meter.update(fps)
@@ -228,7 +262,7 @@ class Resnet3D(LightningModule):
         self.precision_recall(out, target)
         if save:
             with open(os.path.join(self.save_root, "output.csv") if self.save_root else "output.csv", "a") as fp:
-                for v, l in zip(out.cpu().squeeze().tolist(), target.cpu().squeeze().tolist()):
+                for v, l in zip(out[:, 1].cpu().squeeze().tolist(), target[:, 1].cpu().squeeze().tolist()):
                     print(v, l, sep=",", file=fp)
 
         precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)

@@ -28,8 +28,9 @@ class Data(Dataset):
         arr = np.load(file).astype(np.float32)
         arr = torch.from_numpy(arr)
         arr.unsqueeze_(dim=0)
-        label = torch.ones((1,))
-        return "a", arr, label * self.label
+        label = torch.zeros((2,))
+        label[int(self.label)] = 1
+        return "a", arr, label
 
     def __len__(self):
         return len(self.files)
