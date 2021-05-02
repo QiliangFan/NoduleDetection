@@ -109,7 +109,7 @@ class Resnet3D(LightningModule):
             nn.Linear(num_feature, num_feature),
             nn.Dropout(p=dropout),
             nn.Linear(num_feature, num_classes),
-            # nn.Sigmoid()
+            nn.Sigmoid()
         )
 
         # criterion and metric
@@ -244,7 +244,7 @@ class Resnet3D(LightningModule):
                 else:
                     tns += 1
             else:
-                if label == 1:
+                if pred == 1:
                     fps += 1
                 else:
                     fns += 1
@@ -264,7 +264,7 @@ class Resnet3D(LightningModule):
         self.precision_recall(out, target)
         if save:
             with open(os.path.join(self.save_root, "output.csv") if self.save_root else "output.csv", "a") as fp:
-                for v, l in zip(out[:, 1].cpu().squeeze().tolist(), target[:, 1].cpu().squeeze().tolist()):
+                for v, l in zip(out.cpu().squeeze().tolist(), target.cpu().squeeze().tolist()):
                     print(v, l, sep=",", file=fp)
 
 
