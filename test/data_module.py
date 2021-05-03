@@ -65,9 +65,9 @@ class DataModule(LightningDataModule):
         if stage in "fit":
 
             self.train_pos_data_0 = Data(self.train_pos_files, label=1)
-            self.train_neg_data_0 = Data(self.sub_train_neg_files[:5000], label=0)
+            self.train_neg_data_0 = Data(self.sub_train_neg_files, label=0)
 
-            self.train_pos_data_1 = Data(self.train_pos_files[:5000], label=1)
+            self.train_pos_data_1 = Data(self.train_pos_files, label=1)
             self.train_neg_data_1 = Data(self.train_neg_files, label=0)
             
             # for val
@@ -87,7 +87,7 @@ class DataModule(LightningDataModule):
             ])
         # train_data = self.train_pos_data
         train_data = DataLoader(
-            train_data, batch_size=BATCH_SIZE, pin_memory=True, num_workers=NUM_WORK, shuffle=True)
+            train_data, batch_size=BATCH_SIZE, pin_memory=True, num_workers=NUM_WORK, shuffle=True, prefetch_factor=8)
         return train_data
 
     def test_dataloader(self) -> DataLoader:
@@ -95,11 +95,11 @@ class DataModule(LightningDataModule):
         test_data = ConcatDataset([self.test_pos_data, self.test_neg_data])
         # test_data = self.test_pos_data
         test_data = DataLoader(test_data, batch_size=BATCH_SIZE,
-                               pin_memory=True, num_workers=NUM_WORK, shuffle=True)
+                               pin_memory=True, num_workers=NUM_WORK, shuffle=True, prefetch_factor=8)
         return test_data
 
     def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         print("val dataloader")
         val_data = ConcatDataset([self.test_pos_data, self.test_neg_data])
-        val_data = DataLoader(val_data, batch_size=BATCH_SIZE, pin_memory=True, num_workers=NUM_WORK, shuffle=True)
+        val_data = DataLoader(val_data, batch_size=BATCH_SIZE, pin_memory=True, num_workers=NUM_WORK, shuffle=True, prefetch_factor=8)
         return val_data

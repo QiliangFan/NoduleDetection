@@ -18,24 +18,25 @@ def conv333(inchannel, outchannel, stride=1):
                      outchannel,
                      (3, 3, 3),
                      stride=stride,
-                     padding=1)
-                
+                     padding=1,
+                     bias=False)
+
 
 class ResBlock(nn.Module):
     def __init__(self, inchannel, outchannel, stride=1):
         super(ResBlock, self).__init__()
-        self.relu1 = nn.ReLU(inplace=True)
-        self.relu2 = nn.ReLU(inplace=True)
+        self.relu1 = nn.LeakyReLU(inplace=True)
+        self.relu2 = nn.LeakyReLU(inplace=True)
 
         self.conv1 = conv333(inchannel,
                              outchannel,
                              stride=stride)
-        self.bn1 = nn.BatchNorm3d(outchannel)
-        
+        self.bn1 = nn.InstanceNorm3d(outchannel)
+
         self.conv2 = conv333(outchannel,
                              outchannel,
                              stride=1)
-        self.bn2 = nn.BatchNorm3d(outchannel)
+        self.bn2 = nn.InstanceNorm3d(outchannel)
 
         if stride == 2:
             self.short_cut = nn.Conv3d(inchannel,
@@ -58,7 +59,7 @@ class ResBlock(nn.Module):
         x += res
         x = self.relu2(x)
         return x
-                        
+
 
 class Resnet3D(LightningModule):
     def __init__(self, in_channel, num_classes, verbose=False, dropout=0.5, save_root=None):
@@ -69,35 +70,33 @@ class Resnet3D(LightningModule):
 
         num_feature = 2
         self.block1 = nn.Conv3d(in_channel,
-                                num_feature, 
+                                num_feature,
                                 (7, 7, 7),
                                 stride=1,
                                 padding=3)  # 16*48*48*48
         self.block2 = nn.Sequential(
             ResBlock(num_feature, num_feature*2, stride=2),  # 16*24
             nn.Dropout3d(p=dropout),
-            ResBlock(num_feature*2, num_feature*2), 
+            ResBlock(num_feature*2, num_feature*2),
             nn.Dropout3d(p=dropout),
-            # nn.MaxPool3d((2, 2, 2), stride=2),  # 16*12
         )
         num_feature *= 2
         self.block3 = nn.Sequential(
-            ResBlock(num_feature, num_feature*2, stride=2), # 32*12
+            ResBlock(num_feature, num_feature*2, stride=2),  # 32*12
             nn.Dropout3d(p=dropout),
             ResBlock(num_feature*2, num_feature*2),
             nn.Dropout3d(p=dropout),
-            # nn.MaxPool3d((2, 2, 2), stride=2),  # 32*6
         )
         num_feature *= 2
         self.block4 = nn.Sequential(
-            ResBlock(num_feature, num_feature*2, stride=2), # 64*6
+            ResBlock(num_feature, num_feature*2, stride=2),  # 64*6
             nn.Dropout3d(p=dropout),
             ResBlock(num_feature*2, num_feature*2),
             nn.Dropout3d(p=dropout),
         )
         num_feature *= 2
         self.block5 = nn.Sequential(
-            ResBlock(num_feature, num_feature*2, stride=2), # 128*3
+            ResBlock(num_feature, num_feature*2, stride=2),  # 128*3
             nn.Dropout(p=dropout),
             ResBlock(num_feature*2, num_feature*2),
             nn.Dropout(p=dropout),
@@ -106,15 +105,14 @@ class Resnet3D(LightningModule):
         num_feature *= 2
         self.fc = Sequential(
             nn.Flatten(),
-            nn.Linear(num_feature, num_feature),
-            nn.Dropout(p=dropout),
-            nn.Linear(num_feature, num_classes),
+            nn.Linear(num_feature, 64),
+            nn.PReLU(),
+            nn.Linear(64, num_classes),
             nn.Sigmoid()
         )
 
         # criterion and metric
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([10]))
-        # self.criterion = nn.BCELoss()
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([1]))
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
         self.fp_meter = AverageMeter()
@@ -129,14 +127,13 @@ class Resnet3D(LightningModule):
         x = self.block5(x)
         x = self.fc(x)
         return x
-        
+
     def training_step(self, batch: torch.Tensor, batch_idx):
         self.batch_idx = batch_idx
         files, data, target = batch
         out = self(data)
         loss = self.criterion(out, target)
         return loss
-
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
         self.acc_meter.reset()
@@ -150,14 +147,16 @@ class Resnet3D(LightningModule):
         return batch_idx
 
     def validation_epoch_end(self, outputs: List[Any]) -> None:
-        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
-        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
+        precision = self.tp_meter.sum / \
+            (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
+        recall = self.tp_meter.sum / \
+            (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
         self.log_dict({
             "precision": precision,
             "recall": recall,
             "accuracy": self.acc_meter.avg,
         }, prog_bar=True)
-        
+
         self.log_dict({
             "tp": self.tp_meter.sum,
             "fp": self.fp_meter.sum,
@@ -176,8 +175,10 @@ class Resnet3D(LightningModule):
         return batch_idx
 
     def test_epoch_end(self, outputs: List[Any]) -> None:
-        precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-9)
-        recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-9)
+        precision = self.tp_meter.sum / \
+            (self.tp_meter.sum + self.fp_meter.sum + 1e-9)
+        recall = self.tp_meter.sum / \
+            (self.tp_meter.sum + self.fn_meter.sum + 1e-9)
         self.log_dict({
             "precision": precision,
             "recall": recall,
@@ -198,14 +199,14 @@ class Resnet3D(LightningModule):
         self.fn_meter.reset()
 
     def configure_optimizers(self):
-        opt = optim.Adam(self.parameters(), 
-                        lr=1e-3, 
-                        weight_decay=1e-4,
-                        eps=1e-3,
-                        amsgrad=False
-                        # momentum=0.2, 
-                        # weight_decay=1e-4
-                        )
+        opt = optim.Adam(self.parameters(),
+                         lr=1e-3,
+                         weight_decay=1e-4,
+                         eps=1e-9,
+                         amsgrad=False
+                         # momentum=0.2,
+                         # weight_decay=1e-4
+                         )
         # opt = optim.RMSprop(self.parameters(), lr=1e-4, weight_decay=1e-4, eps=1e-3)
         stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.9)
         # return opt
@@ -216,8 +217,6 @@ class Resnet3D(LightningModule):
 
     @torch.no_grad()
     def precision_recall(self, output: torch.Tensor, target: torch.Tensor):
-        # if hasattr(output, "cpu") and hasattr(target, "cpu"):
-        #     output, target = output.cpu(), target.cpu()
         cp_out, cp_target = output.detach(), target.detach()
         tps = 0
         fps = 0
@@ -227,7 +226,7 @@ class Resnet3D(LightningModule):
         total = 0
 
         for _out, _tg in zip(cp_out, cp_target):
-            if _out > 0.5:
+            if _out > 0.99:
                 pred = 1
             else:
                 pred = 0
@@ -235,7 +234,7 @@ class Resnet3D(LightningModule):
                 label = 1
             else:
                 label = 0
-            
+
             total += 1
             if pred == label:
                 total_acc += 1
@@ -250,7 +249,6 @@ class Resnet3D(LightningModule):
                     fns += 1
 
         self.acc_meter.update(total_acc, total)
-
         self.tp_meter.update(tps)
         self.fp_meter.update(fps)
         self.tn_meter.update(tns)
@@ -266,5 +264,3 @@ class Resnet3D(LightningModule):
             with open(os.path.join(self.save_root, "output.csv") if self.save_root else "output.csv", "a") as fp:
                 for v, l in zip(out.cpu().squeeze().tolist(), target.cpu().squeeze().tolist()):
                     print(v, l, sep=",", file=fp)
-
-
