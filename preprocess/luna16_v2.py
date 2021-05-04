@@ -108,12 +108,8 @@ class Luna16Preprocess:
         self.csv_file = config_file["csv_file"]
         self.sid_file = config_file["sid_file"]
         self.seg_root = config_file["seg_root"]
-        self.dst_root = config_file["dst_root"]
         self.dst_ct_root = config_file["dst_ct_root"]
         self.dst_nodule_root = config_file["dst_nodule_root"]
-        self.dst_size_root = config_file["dst_size_root"]
-        self.weight_root = config_file["weight_root"]
-        self.dst_seg_root = config_file["dst_seg_root"]
 
         # create directory
         self.__confirm_exists()
@@ -171,17 +167,7 @@ class Luna16Preprocess:
             pool.join()
 
     def __confirm_exists(self):
-        if not os.path.exists(self.dst_root):
-            os.mkdir(self.dst_root)
         if not os.path.exists(self.dst_ct_root):
-            os.mkdir(self.dst_ct_root)
-        if not os.path.exists(self.dst_seg_ct):
-            os.mkdir(self.dst_seg_ct)
+            os.makedirs(self.dst_ct_root)
         if not os.path.exists(self.dst_nodule_root):
-            os.mkdir(self.dst_nodule_root)
-        if not os.path.exists(self.dst_size_root):
-            os.mkdir(self.dst_size_root)
-        if not os.path.exists(self.weight_root):
-            os.mkdir(self.weight_root)
-        if not os.path.exists(self.dst_seg_root):
-            os.mkdir(self.dst_seg_root)
+            os.makedirs(self.dst_nodule_root)
