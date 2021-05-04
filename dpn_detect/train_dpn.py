@@ -33,11 +33,12 @@ def main():
         data_module = UnetDataModule(fold,
                                      data_root=data_root,
                                      nodule_root=nodule_root,
-                                     aug_root=aug_root)
+                                     aug_root=aug_root,
+                                     batch_size=32)
 
         model = getdpn(save_dir=save_dir)
         ckpt_path = os.path.join(dir_path, "ckpt", f"{fold}")
-        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="acc")
+        model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="recall", mode="max", save_top_k=1)
         ckpt_list = glob(os.path.join(ckpt_path, "*.ckpt"))
         if len(ckpt_list) > 0:
             ckpt_list.sort()

@@ -386,6 +386,9 @@ class DPN(LightningModule):
         self.fp_meter = AverageMeter()
         self.tn_meter = AverageMeter()
         self.fn_meter = AverageMeter()
+        self.files = []
+        self.preds = []
+        self.targets = []
 
         self.files = []
         self.preds = []
@@ -421,7 +424,21 @@ class DPN(LightningModule):
         return result
 
     def validation_epoch_end(self, outputs):
+        self.log_dict({
+            "tp": self.tp_meter.total,
+            "fp": self.fp_meter.total,
+            "tn": self.tn_meter.total,
+            "fn": self.fn_meter.total,
+        }, prog_bar=True)
 
+        tp = self.tp_meter.total
+        tn = self.tn_meter.total
+        fp = self.fp_meter.total
+        fn = self.fn_meter.total
+
+        precision = tp / (tp + fp + 1e-6)
+        recall = tp / (tp + fn + 1e-6)
+        self.log_dict({"precision": precision, "recall": recall}, prog_bar=True)
         self.tp_meter.reset()
         self.tn_meter.reset()
         self.fp_meter.reset()
@@ -434,22 +451,6 @@ class DPN(LightningModule):
         return result
 
     def test_epoch_end(self, outputs):
-        # self.log_dict({
-        #     "tp": self.tp_meter.total,
-        #     "fp": self.fp_meter.total,
-        #     "tn": self.tn_meter.total,
-        #     "fn": self.fn_meter.total,
-        # }, prog_bar=True)
-
-        # tp = self.tp_meter.total
-        # tn = self.tn_meter.total
-        # fp = self.fp_meter.total
-        # fn = self.fn_meter.total
-
-        # precision = tp / (tp + fp + 1e-6)
-        # recall = tp / (tp + fn + 1e-6)
-        # self.log_dict({"precision": precision, "recall": recall, "acc": self.acc.avg}, prog_bar=True, on_epoch=True)
-        
         with open("metrics.txt", "a") as fp:
             import json
             result = self.trainer.logged_metrics
@@ -458,6 +459,11 @@ class DPN(LightningModule):
                     result[key] = result[key].item()
             result = json.dumps(result, indent=4)
             print(result, file=fp)
+
+        import os
+        with open(os.path.join(self.save_dir, "result.csv"), "a") as fp:
+            for file, pred, target in zip(self.files, self.preds, self.targets):
+                print(file, pred, target, file=fp, sep=",")
         
         import os
         with open(os.path.join(self.save_dir, "result.csv"), "a") as fp:
