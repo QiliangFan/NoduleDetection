@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import torch
 import numpy as np
-from torch._C import TreeView
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import LightningDataModule
 import pandas as pd
@@ -22,8 +21,9 @@ class Data(Dataset):
         self.targets = targets
 
     def __getitem__(self, idx):
-        arr = np.load(self.files).astype(dtype=np.float32)
-        arr = torch.as_tensor(arr)
+        arr = np.load(self.files[idx]).astype(dtype=np.float32)
+        arr = arr[16:47, 16:47, 16:47]
+        arr = torch.as_tensor(arr).unsqueeze(dim=0)
         label = torch.as_tensor([self.targets[idx]])
         return arr, label
 
@@ -56,13 +56,13 @@ class DetectResData(LightningDataModule):
 
         for i in range(10):
             if i != fold_idx:
-                self.train_files.append(self.files[i*each_len:i*each_len+each_len])
-                self.train_preds.append(self.preds[i*each_len:i*each_len+each_len])
-                self.train_targets.append(self.targets[i*each_len:i*each_len+each_len])
+                self.train_files.extend(self.files[i*each_len:i*each_len+each_len])
+                self.train_preds.extend(self.preds[i*each_len:i*each_len+each_len])
+                self.train_targets.extend(self.targets[i*each_len:i*each_len+each_len])
             else:
-                self.test_files.append(self.files[i*each_len:i*each_len+each_len])
-                self.test_preds.append(self.preds[i*each_len:i*each_len+each_len])
-                self.test_targets.append(self.targets[i*each_len:i*each_len+each_len])
+                self.test_files.extend(self.files[i*each_len:i*each_len+each_len])
+                self.test_preds.extend(self.preds[i*each_len:i*each_len+each_len])
+                self.test_targets.extend(self.targets[i*each_len:i*each_len+each_len])
 
     def prepare_data(self):
         self.train_data = Data(self.train_files, self.train_preds, self.train_targets)
@@ -83,7 +83,7 @@ class DetectResData(LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         return self.val_data
 
-    def test_dataload(self) -> DataLoader:
+    def test_dataloader(self) -> DataLoader:
         return self.test_data
 
 
