@@ -110,7 +110,6 @@ class Luna16Preprocess:
         self.seg_root = config_file["seg_root"]
         self.dst_root = config_file["dst_root"]
         self.dst_ct_root = config_file["dst_ct_root"]
-        self.dst_seg_ct = config_file["dst_seg_ct_root"]
         self.dst_nodule_root = config_file["dst_nodule_root"]
         self.dst_size_root = config_file["dst_size_root"]
         self.weight_root = config_file["weight_root"]

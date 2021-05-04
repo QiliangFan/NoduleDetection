@@ -1,0 +1,8 @@
+{
+    "ct_root": "/home/maling/fanqiliang/lung16/LUNG16",
+    "csv_file": "/home/maling/fanqiliang/lung16/CSVFILES/annotation.csv",
+    "sid_file": "/home/maling/fanqiliang/lung16/CSVFILES/seriesuids.csv",
+    "seg_root": "/home/maling/fanqiliang/data/luna16/seg",
+    "dst_ct_root": "/home/maling/fanqiliang/data/luna16/ct",
+    "dst_nodule_root": "/home/maling/fanqiliang/data/luna16/nodule"
+}
