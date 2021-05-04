@@ -14,6 +14,9 @@ def main():
     output = csv[:, 0]
     target = csv[:, 1]
     fpr, tpr, threshold = roc_curve(target, output)
+    print(fpr)
+    print(tpr)
+    print(threshold)
     sort_arg = argsort(fpr)
     fpr = fpr[sort_arg]
     tpr = tpr[sort_arg]
