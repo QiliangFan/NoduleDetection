@@ -43,7 +43,7 @@ def main():
         logger = TensorBoardLogger(
             f"{save_path}/resnet3d_logs/fold{i}", name="10-fold")
 
-        epoch = 100
+        epoch = 5
         trainer = Trainer(gpus=[0 if run_name == "sub_last" else 1], logger=logger, callbacks=[
                           checkpoint_callback], max_epochs=epoch, resume_from_checkpoint=ckpt)
 
@@ -53,7 +53,7 @@ def main():
         # 先主要学正例，降采样负例
 
         data_module = DataModule(i, FOLD, aug_root, run_name)
-        # trainer.fit(model=model, datamodule=data_module)
+        trainer.fit(model=model, datamodule=data_module)
 
         trainer.test(model=model, datamodule=data_module,
                      verbose=True)   # 两个data module的测试数据集都是一样的
@@ -63,9 +63,14 @@ def main():
 
 
 if __name__ == "__main__":
-    pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
-    neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
-    aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+    # pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
+    # neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
+    # aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+
+    # 209
+    pos_root = "/home/nku2/fanqiliang/data/tmp/patch/1"
+    neg_root = "/home/nku2/fanqiliang/data/tmp/patch/0"
+    aug_root = "/home/nku2/fanqiliang/data/tmp/augmented_data"
 
     metric_file = os.path.join(project_path, "test", "resnet3d.json")
     # train = True
@@ -82,5 +87,5 @@ if __name__ == "__main__":
 
     FOLD = 10
 
-    DROPOUT = 0.2
+    DROPOUT = 0.5
     main()

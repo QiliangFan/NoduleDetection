@@ -49,11 +49,11 @@ class ResBlock(nn.Module):
         if self.short_cut:
             res = self.short_cut(x)
         x = self.conv1(x)
-        x = self.bn1(x)
+        # x = self.bn1(x)
         x = self.relu(x)
 
         x = self.conv2(x)
-        x = self.bn2(x)
+        # x = self.bn2(x)
         x += res
         x = self.relu(x)
         return x
@@ -66,47 +66,48 @@ class Resnet3D(LightningModule):
         self.verbose = verbose
         # 1*24*40*40
         self.block1 = nn.Conv3d(in_channel,
-                                16, 
+                                2, 
                                 (1, 1, 1),
                                 stride=1)  # 16*48*48*48
         self.block2 = nn.Sequential(
-            ResBlock(16, 32, 2),  # 16*24
+            ResBlock(2, 4, stride=2),  # 16*24
             nn.Dropout3d(p=dropout),
-            ResBlock(32, 32), 
+            ResBlock(4, 4), 
             nn.Dropout3d(p=dropout),
             # nn.MaxPool3d((2, 2, 2), stride=2),  # 16*12
         )
         self.block3 = nn.Sequential(
-            ResBlock(32, 64, stride=2), # 32*12
+            ResBlock(4, 8, stride=2), # 32*12
             nn.Dropout3d(p=dropout),
-            ResBlock(64, 64),
+            ResBlock(8, 8),
             nn.Dropout3d(p=dropout),
             # nn.MaxPool3d((2, 2, 2), stride=2),  # 32*6
         )
         self.block4 = nn.Sequential(
-            ResBlock(64, 128, stride=2), # 64*6
+            ResBlock(8, 16, stride=2), # 64*6
             nn.Dropout3d(p=dropout),
-            ResBlock(128, 128),
+            ResBlock(16, 16),
             nn.Dropout3d(p=dropout),
         )
         self.block5 = nn.Sequential(
-            ResBlock(128, 256, stride=2), # 128*3
+            ResBlock(16, 32, stride=2), # 128*3
             nn.Dropout(p=dropout),
-            ResBlock(256, 256),
+            ResBlock(32, 32),
             nn.Dropout(p=dropout),
             nn.AdaptiveAvgPool3d((3, 1, 1))
         )
 
         self.fc = Sequential(
             nn.Flatten(),
-            nn.Linear(256*3, 256),
+            nn.Linear(32*3, 32),
             nn.Dropout(p=dropout),
-            nn.Linear(256, num_classes),
+            nn.Linear(32, num_classes),
             nn.Sigmoid()
         )
 
         # criterion and metric
         self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
+        # self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
         self.fp_meter = AverageMeter()
@@ -114,25 +115,10 @@ class Resnet3D(LightningModule):
         self.fn_meter = AverageMeter()
 
     def forward(self, x: torch.Tensor):
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"0input", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block1(x)
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"1block1", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block2(x)
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"2block2", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block3(x)
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"3block3", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block4(x)
-        with torch.no_grad():
-            if self.verbose:
-                self.logger.experiment.add_images(f"4block4", x[0][0].unsqueeze(dim=1), self.batch_idx%1000)
         x = self.block5(x)
         x = self.fc(x)
         return x
@@ -142,29 +128,10 @@ class Resnet3D(LightningModule):
         data, target = batch
         out = self(data)
         loss = self.criterion(out, target)
-        if self.verbose:
-            self.precision_recall(out, target)
         return loss
 
-    def training_step_end(self, output):
-        if self.verbose:
-            self.log_dict({
-                "tp": self.tp_meter.sum,
-                "fp": self.fp_meter.sum,
-                "tn": self.tn_meter.sum,
-                "fn": self.fn_meter.sum
-            }, prog_bar=True, on_epoch=False, on_step=True)
-        return output
 
     def training_epoch_end(self, outputs: List[Any]) -> None:
-        if self.verbose:
-            precision = self.tp_meter.sum / (self.tp_meter.sum + self.fp_meter.sum + 1e-6)
-            recall = self.tp_meter.sum / (self.tp_meter.sum + self.fn_meter.sum + 1e-6)
-            self.log_dict({
-                "precision": precision,
-                "recall": recall,
-                "accuracy": self.acc_meter.avg
-            }, prog_bar=True)
         self.acc_meter.reset()
         self.tp_meter.reset()
         self.fp_meter.reset()

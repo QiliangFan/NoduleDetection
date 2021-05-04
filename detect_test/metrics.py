@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch import nn
 from torch.functional import Tensor
 
@@ -19,8 +20,10 @@ class DiceCoefficient(nn.Module):
         super(DiceCoefficient, self).__init__()
 
     def forward(self, pred: Tensor, targets: Tensor):
-        num = 2 * torch.sum(torch.mul(pred, targets), dim=1) + 1
-        den = torch.sum(pred + targets, dim=1) + 1
+        pred[pred <= 0.5] = 0
+        pred[pred > 0.5] = 1
+        num = 2 * torch.sum(torch.mul(pred, targets), dim=1)
+        den = torch.sum(pred + targets, dim=1) + 1e-6
         coe = num / den
         return coe.mean()
 
@@ -38,7 +41,7 @@ class Accuracy(nn.Module):
                 acc += 1
             total += 1
 
-        return 
+        return acc / total
 
 class AverageMeter:
     def __init__(self):
@@ -47,6 +50,12 @@ class AverageMeter:
         self.avg = 0
 
     def update(self, val, n=1):
+        if isinstance(val, torch.Tensor):
+            val = int(val.item())
+        elif isinstance(val, np.ndarray):
+            val = int(val.item())
+        else:
+            val = int(val)
         self.total += val
         self.num += n
         self.avg = self.total / self.num

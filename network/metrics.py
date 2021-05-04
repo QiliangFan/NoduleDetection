@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import numpy as np
 from torch.functional import Tensor
 
 
@@ -47,6 +48,12 @@ class AverageMeter:
         self.avg = 0
 
     def update(self, val, n=1):
+        if isinstance(val, torch.Tensor):
+            val = int(val.item())
+        elif isinstance(val, np.ndarray):
+            val = int(val.item())
+        else:
+            val = int(val)
         self.total += val
         self.num += n
         self.avg = self.total / self.num

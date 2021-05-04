@@ -38,7 +38,7 @@ def main():
 
         if stage == "train":
             trainer.fit(model, datamodule=data_module)
-            trainer.test(model, datamodule=data_module, verbose=True)
+            # trainer.test(model, datamodule=data_module, verbose=True)
         else:
             trainer.test(model, datamodule=data_module, verbose=True)
         trainer.checkpoint_callback.best_model_path

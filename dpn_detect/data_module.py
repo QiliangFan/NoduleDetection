@@ -40,7 +40,7 @@ class UnetDataModule(LightningDataModule):
                     label = torch.ones((1))
                 else:
                     label = torch.zeros((1))
-            return torch.as_tensor(arr), torch.as_tensor(label)
+            return self.data_list[idx], torch.as_tensor(arr), torch.as_tensor(label)
 
         def __len__(self):
             return len(self.data_list)

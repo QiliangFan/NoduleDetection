@@ -384,6 +384,9 @@ class DPN(LightningModule):
         self.fp_meter = AverageMeter()
         self.tn_meter = AverageMeter()
         self.fn_meter = AverageMeter()
+        self.files = []
+        self.preds = []
+        self.targets = []
 
     def forward(self, x):
         x = self.features(x)
@@ -399,7 +402,7 @@ class DPN(LightningModule):
         return out.view(out.size(0), -1)
 
     def training_step(self, batch, batch_idx):
-        ct, nodule = batch
+        files, ct, nodule = batch
         out = self(ct)
         loss = self.bce_loss(out, nodule)
         with torch.no_grad():
@@ -419,6 +422,21 @@ class DPN(LightningModule):
         return result
 
     def validation_epoch_end(self, outputs):
+        self.log_dict({
+            "tp": self.tp_meter.total,
+            "fp": self.fp_meter.total,
+            "tn": self.tn_meter.total,
+            "fn": self.fn_meter.total,
+        }, prog_bar=True)
+
+        tp = self.tp_meter.total
+        tn = self.tn_meter.total
+        fp = self.fp_meter.total
+        fn = self.fn_meter.total
+
+        precision = tp / (tp + fp + 1e-6)
+        recall = tp / (tp + fn + 1e-6)
+        self.log_dict({"precision": precision, "recall": recall}, prog_bar=True)
         self.tp_meter.reset()
         self.tn_meter.reset()
         self.fp_meter.reset()
@@ -431,7 +449,6 @@ class DPN(LightningModule):
         return result
 
     def test_epoch_end(self, outputs):
-
         with open("metrics.txt", "a") as fp:
             import json
             result = self.trainer.logged_metrics
@@ -440,6 +457,11 @@ class DPN(LightningModule):
                     result[key] = result[key].item()
             result = json.dumps(result, indent=4)
             print(result, file=fp)
+
+        import os
+        with open(os.path.join(self.save_dir, "result.csv"), "a") as fp:
+            for file, pred, target in zip(self.files, self.preds, self.targets):
+                print(file, pred, target, file=fp, sep=",")
         
         self.acc.reset()
         self.tp_meter.reset()
@@ -450,13 +472,13 @@ class DPN(LightningModule):
     def configure_optimizers(self):
         from torch.optim import SGD, Adam, Adagrad
 
-        optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
+        optim = Adam(self.parameters(), lr=1e-3, weight_decay=1e-4, eps=1e-3, amsgrad=False)
         # optim = Adagrad(self.parameters(), lr=1e-3, lr_decay=0.95)
         return optim
 
     @torch.no_grad()
     def test_operation(self, batch, batch_idx, save=False):
-        ct, nodule = batch
+        files, ct, nodule = batch
         out = self(ct)
 
         if self.save_dir is not None:
@@ -464,7 +486,9 @@ class DPN(LightningModule):
             if not os.path.exists(self.save_dir):
                 os.makedirs(self.save_dir)
             with open(os.path.join(self.save_dir, "output.txt"), "a") as fp:
-                for _out, _nodule in zip(out.cpu(), nodule.cpu()):
+                for _file, _out, _nodule in zip(files, out.cpu(), nodule.cpu()):
+                    _label = _nodule.item()
+                    _pred = 1 if _out.item() > 0.5 else 0
                     if _out.item() > 0.5 and _nodule == 1:  # TP
                         self.tp_meter.update(1, 1)
                         self.fp_meter.update(0, 1)
@@ -486,13 +510,11 @@ class DPN(LightningModule):
                         self.tn_meter.update(1, 1)
                         self.fn_meter.update(0, 1)
                     if save:
+                        self.files.append(_file)
+                        self.preds.append(_pred)
+                        self.targets.append(_label)
                         print(_out.item(), _nodule.item(), sep=",", file=fp)
-            self.log_dict({
-                "tp": self.tp_meter.total,
-                "fp": self.fp_meter.total,
-                "tn": self.tn_meter.total,
-                "fn": self.fn_meter.total,
-            }, prog_bar=True)
+
         tp = self.tp_meter.total
         tn = self.tn_meter.total
         fp = self.fp_meter.total
@@ -500,7 +522,12 @@ class DPN(LightningModule):
 
         precision = tp / (tp + fp + 1e-6)
         recall = tp / (tp + fn + 1e-6)
-        self.log_dict({"precision": precision, "recall": recall}, prog_bar=True)
         self.acc.update(out.detach().cpu(), nodule.detach().cpu())
-        self.log("acc", self.acc.avg)
+        self.log_dict({
+            "tp": self.tp_meter.total,
+            "fp": self.fp_meter.total,
+            "tn": self.tn_meter.total,
+            "fn": self.fn_meter.total,
+        }, prog_bar=True, on_step=True)
+        self.log_dict({"precision": precision, "recall": recall, "acc": self.acc.avg}, prog_bar=True, on_step=True)
         return batch_idx

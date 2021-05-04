@@ -87,7 +87,7 @@ class DataModule(LightningDataModule):
         # train_data = ConcatDataset(
         #     [self.train_pos_data_0, self.train_neg_data_0, self.train_pos_data_1, self.train_neg_data_1])
         train_data = ConcatDataset([
-            self.train_pos_data_1, 
+            # self.train_pos_data_1, 
             self.train_neg_data_1, 
             self.train_pos_data_0
             ])

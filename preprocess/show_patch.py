@@ -11,6 +11,11 @@ patch_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule/subset0"
 ct_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct/subset0"
 
 aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+
+aug_root = "/home/nku2/fanqiliang/data/luna16/cube_aug"
+data_root = "/home/nku2/fanqiliang/data/luna16/cube_ct"
+nodule_root = "/home/nku2/fanqiliang/data/luna16/cube_nodule"
+
 files = glob(os.path.join(aug_root, "*.npy"))
 
 for i in range(100):
