@@ -25,18 +25,18 @@ def conv333(inchannel, outchannel, stride=1):
 class ResBlock(nn.Module):
     def __init__(self, inchannel, outchannel, stride=1):
         super(ResBlock, self).__init__()
-        self.relu1 = nn.LeakyReLU(inplace=True)
-        self.relu2 = nn.LeakyReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+        self.relu2 = nn.ReLU(inplace=True)
 
         self.conv1 = conv333(inchannel,
                              outchannel,
                              stride=stride)
-        self.bn1 = nn.InstanceNorm3d(outchannel)
+        self.bn1 = nn.BatchNorm3d(outchannel)
 
         self.conv2 = conv333(outchannel,
                              outchannel,
                              stride=1)
-        self.bn2 = nn.InstanceNorm3d(outchannel)
+        self.bn2 = nn.BatchNorm3d(outchannel)
 
         if stride == 2:
             self.short_cut = nn.Conv3d(inchannel,
@@ -57,6 +57,7 @@ class ResBlock(nn.Module):
         x = self.conv2(x)
         x = self.bn2(x)
         x += res
+        del res
         x = self.relu2(x)
         return x
 
@@ -68,51 +69,62 @@ class Resnet3D(LightningModule):
         self.verbose = verbose
         # 1*24*40*40
 
+        block_num = [40, 40, 40]
+
         num_feature = 2
         self.block1 = nn.Conv3d(in_channel,
                                 num_feature,
-                                (7, 7, 7),
+                                (3, 3, 3),
                                 stride=1,
-                                padding=3)  # 16*48*48*48
+                                padding=1)  # 16*48*48*48
+
+        blocks = []
+        for i in range(block_num[0]):
+            blocks.append(ResBlock(num_feature*2, num_feature*2))
         self.block2 = nn.Sequential(
+            nn.Dropout3d(),
             ResBlock(num_feature, num_feature*2, stride=2),  # 16*24
-            nn.Dropout3d(p=dropout),
-            ResBlock(num_feature*2, num_feature*2),
-            nn.Dropout3d(p=dropout),
+            *blocks
         )
         num_feature *= 2
+        blocks.clear()
+        for i in range(block_num[1]):
+            blocks.append(ResBlock(num_feature*2, num_feature*2))
         self.block3 = nn.Sequential(
+            nn.Dropout3d(),
             ResBlock(num_feature, num_feature*2, stride=2),  # 32*12
-            nn.Dropout3d(p=dropout),
-            ResBlock(num_feature*2, num_feature*2),
-            nn.Dropout3d(p=dropout),
+            *blocks
         )
         num_feature *= 2
+        blocks.clear()
+        for i in range(block_num[2]):
+            blocks.append(ResBlock(num_feature*2, num_feature*2))
         self.block4 = nn.Sequential(
+            nn.Dropout3d(),
             ResBlock(num_feature, num_feature*2, stride=2),  # 64*6
-            nn.Dropout3d(p=dropout),
-            ResBlock(num_feature*2, num_feature*2),
-            nn.Dropout3d(p=dropout),
+            *blocks
         )
         num_feature *= 2
         self.block5 = nn.Sequential(
             ResBlock(num_feature, num_feature*2, stride=2),  # 128*3
-            nn.Dropout(p=dropout),
             ResBlock(num_feature*2, num_feature*2),
-            nn.Dropout(p=dropout),
-            nn.AdaptiveAvgPool3d((1, 1, 1))
+            nn.AdaptiveMaxPool3d((1, 1, 1))
         )
         num_feature *= 2
         self.fc = Sequential(
             nn.Flatten(),
-            nn.Linear(num_feature, 64),
-            nn.PReLU(),
-            nn.Linear(64, num_classes),
+            # nn.Linear(num_feature*4*4*4, num_feature),
+            nn.Linear(num_feature, num_feature),
+            # nn.ReLU(inplace=True),
+            # nn.Linear(num_feature, num_feature//4),
+            # nn.ReLU(inplace=True),
+            nn.Linear(num_feature, num_classes),
             nn.Sigmoid()
         )
 
         # criterion and metric
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([1]))
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([3]))
+        # self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
         self.fp_meter = AverageMeter()
@@ -130,8 +142,14 @@ class Resnet3D(LightningModule):
 
     def training_step(self, batch: torch.Tensor, batch_idx):
         self.batch_idx = batch_idx
-        files, data, target = batch
+        # files, data, target = batch
+
+        data, target = batch
         out = self(data)
+        self.log_dict({
+            "max_o": out.max(),
+            "min_o": out.min()
+        }, prog_bar=True)
         loss = self.criterion(out, target)
         return loss
 
@@ -201,14 +219,13 @@ class Resnet3D(LightningModule):
     def configure_optimizers(self):
         opt = optim.Adam(self.parameters(),
                          lr=1e-3,
-                         weight_decay=1e-4,
+                         weight_decay=1e-6,
                          eps=1e-9,
                          amsgrad=False
-                         # momentum=0.2,
+                        #  momentum=0.2,
                          # weight_decay=1e-4
                          )
-        # opt = optim.RMSprop(self.parameters(), lr=1e-4, weight_decay=1e-4, eps=1e-3)
-        stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.9)
+        stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.99)
         # return opt
         return {
             "optimizer": opt,
@@ -216,37 +233,48 @@ class Resnet3D(LightningModule):
         }
 
     @torch.no_grad()
-    def precision_recall(self, output: torch.Tensor, target: torch.Tensor):
-        cp_out, cp_target = output.detach(), target.detach()
+    def precision_recall(self, data: torch.Tensor, output: torch.Tensor, target: torch.Tensor):
+        data, cp_out, cp_target = data.detach(), output.detach(), target.detach()
         tps = 0
         fps = 0
         tns = 0
         fns = 0
         total_acc = 0
         total = 0
+        data[data == 1] = 1
+        data[data == 0] = 1
 
-        for _out, _tg in zip(cp_out, cp_target):
-            if _out > 0.99:
-                pred = 1
-            else:
-                pred = 0
-            if _tg > 0:
-                label = 1
-            else:
-                label = 0
-
-            total += 1
-            if pred == label:
+        for arr, _out, _tg in zip(data, cp_out, cp_target):
+            tmp = torch.zeros_like(arr)
+            tmp[arr == 1] = 1
+            tmp[arr == 0] = 1
+            
+            if tmp.sum() / tmp.numel() > 0.5:
+                tns += 1
+                total += 1
                 total_acc += 1
-                if label == 1:
-                    tps += 1
-                else:
-                    tns += 1
             else:
-                if pred == 1:
-                    fps += 1
+                if _out > 0.5:
+                    pred = 1
                 else:
-                    fns += 1
+                    pred = 0
+                if _tg > 0:
+                    label = 1
+                else:
+                    label = 0
+
+                total += 1
+                if pred == label:
+                    total_acc += 1
+                    if label == 1:
+                        tps += 1
+                    else:
+                        tns += 1
+                else:
+                    if pred == 1:
+                        fps += 1
+                    else:
+                        fns += 1
 
         self.acc_meter.update(total_acc, total)
         self.tp_meter.update(tps)
@@ -257,9 +285,10 @@ class Resnet3D(LightningModule):
     @torch.no_grad()
     def test_operation(self, batch, batch_idx, save=False):
         self.batch_idx = batch_idx
-        files, data, target = batch
+        # files, data, target = batch
+        data, target = batch
         out: Tensor = self(data)
-        self.precision_recall(out, target)
+        self.precision_recall(data, out, target)
         if save:
             with open(os.path.join(self.save_root, "output.csv") if self.save_root else "output.csv", "a") as fp:
                 for v, l in zip(out.cpu().squeeze().tolist(), target.cpu().squeeze().tolist()):
