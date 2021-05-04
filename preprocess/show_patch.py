@@ -12,7 +12,7 @@ if not os.path.exists(save_path):
 # patch_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule/subset0"
 # ct_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct/subset0"
 # nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule/subset0"
-data_root = "/home/maling/fanqiliang/data/luna16/cube_ct/subset0"
+data_root = "/home/maling/fanqiliang/data/luna16/cube32_ct/subset0"
 # aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
 # tmp_pos_root = "/home/maling/fanqiliang/data/tmp64/patch/1"
 # tmp_neg_root = "/home/maling/fanqiliang/data/tmp64/patch/0"

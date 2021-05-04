@@ -64,7 +64,7 @@ def ct_worker(file, seg_file, save_path):
     target_img.SetSpacing(target_space)
 
     if not os.path.exists(os.path.dirname(save_path)):
-        os.mkdir(os.path.dirname(save_path))
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
     sitk.WriteImage(target_img, save_path)
     print(f"{datetime.now(): %Y-%m-%d %H:%M:%S}", save_path)
 

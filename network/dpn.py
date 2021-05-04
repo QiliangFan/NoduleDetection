@@ -390,10 +390,6 @@ class DPN(LightningModule):
         self.preds = []
         self.targets = []
 
-        self.files = []
-        self.preds = []
-        self.targets = []
-
     def forward(self, x):
         x = self.features(x)
         if not self.training and self.test_time_pool:
@@ -411,8 +407,8 @@ class DPN(LightningModule):
         files, ct, nodule = batch
         out = self(ct)
         loss = self.bce_loss(out, nodule)
-        self.log("output_max", torch.max(out).item(), prog_bar=True)
-        self.log("output_min", torch.min(out).item(), prog_bar=True)
+        self.log("output_max", torch.max(out), prog_bar=True)
+        self.log("output_min", torch.min(out), prog_bar=True)
         return loss
 
     def training_epoch_end(self, outputs) -> None:
@@ -424,21 +420,19 @@ class DPN(LightningModule):
         return result
 
     def validation_epoch_end(self, outputs):
+        tp = self.tp_meter.total
+        tn = self.tn_meter.total
+        fp = self.fp_meter.total
+        fn = self.fn_meter.total
+        precision = tp / (tp + fp + 1e-6)
+        recall = tp / (tp + fn + 1e-6)
         self.log_dict({
             "tp": self.tp_meter.total,
             "fp": self.fp_meter.total,
             "tn": self.tn_meter.total,
             "fn": self.fn_meter.total,
         }, prog_bar=True)
-
-        tp = self.tp_meter.total
-        tn = self.tn_meter.total
-        fp = self.fp_meter.total
-        fn = self.fn_meter.total
-
-        precision = tp / (tp + fp + 1e-6)
-        recall = tp / (tp + fn + 1e-6)
-        self.log_dict({"precision": precision, "recall": recall}, prog_bar=True)
+        self.log_dict({"precision": precision, "recall": recall, "acc": self.acc.avg}, prog_bar=True)
         self.tp_meter.reset()
         self.tn_meter.reset()
         self.fp_meter.reset()
@@ -451,6 +445,20 @@ class DPN(LightningModule):
         return result
 
     def test_epoch_end(self, outputs):
+        tp = self.tp_meter.total
+        tn = self.tn_meter.total
+        fp = self.fp_meter.total
+        fn = self.fn_meter.total
+        precision = tp / (tp + fp + 1e-6)
+        recall = tp / (tp + fn + 1e-6)
+        self.log_dict({
+            "tp": self.tp_meter.total,
+            "fp": self.fp_meter.total,
+            "tn": self.tn_meter.total,
+            "fn": self.fn_meter.total,
+        }, prog_bar=True)
+        self.log_dict({"precision": precision, "recall": recall, "acc": self.acc.avg}, prog_bar=True)
+
         with open("metrics.txt", "a") as fp:
             import json
             result = self.trainer.logged_metrics
@@ -528,21 +536,6 @@ class DPN(LightningModule):
                         self.preds.append(_pred)
                         self.targets.append(_label)
                         print(_out.item(), _nodule.item(), sep=",", file=fp)
-        tp = self.tp_meter.total
-        tn = self.tn_meter.total
-        fp = self.fp_meter.total
-        fn = self.fn_meter.total
-
-
-        precision = tp / (tp + fp + 1e-6)
-        recall = tp / (tp + fn + 1e-6)
-        self.log_dict({
-            "tp": self.tp_meter.total,
-            "fp": self.fp_meter.total,
-            "tn": self.tn_meter.total,
-            "fn": self.fn_meter.total,
-        }, prog_bar=True, on_step=True)
-        self.log_dict({"precision": precision, "recall": recall, "acc": self.acc.avg}, prog_bar=True, on_step=True)
 
         self.acc.update(out.detach().cpu(), nodule.detach().cpu())
         return batch_idx

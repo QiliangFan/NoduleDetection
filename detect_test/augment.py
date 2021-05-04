@@ -8,8 +8,8 @@ import shutil
 # ct_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
 
 # 220
-aug_root = "/home/maling/fanqiliang/data/luna16/cube_aug"
-ct_root = "/home/maling/fanqiliang/data/luna16/cube_ct"
+aug_root = "/home/maling/fanqiliang/data/luna16/cube32_aug"
+ct_root = "/home/maling/fanqiliang/data/luna16/cube32_ct"
 
 def augment(src_file: str):
     if not os.path.exists(src_file):

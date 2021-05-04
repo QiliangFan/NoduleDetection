@@ -82,16 +82,16 @@ class UnetDataModule(LightningDataModule):
         if stage == "fit":  # train
             data = self.Data(self.train_files, self.train_nodule_files)
             self.data = DataLoader(
-                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK)
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=8)
 
             data = self.Data(self.test_files, self.test_nodule_files)
             self.val_data = DataLoader(
-                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK)
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=8)
 
         elif stage == "test":  # test
             data = self.Data(self.test_files, self.test_nodule_files)
             self.data = DataLoader(
-                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK)
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=8)
 
     def train_dataloader(self):
         return self.data
