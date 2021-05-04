@@ -11,7 +11,7 @@ from pytorch_lightning import Trainer
 from network.dpn import getdpn
 import torch.nn as nn
 import torch
-
+from pytorch_lightning.loggers import TensorBoardLogger
 
 
 # data_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
@@ -22,10 +22,10 @@ import torch
 # data_root = "/home/maling/fanqiliang/data/luna16/cube_ct"
 # nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule"
 
-# 209
-aug_root = "/home/nku2/fanqiliang/data/luna16/cube_aug"
-data_root = "/home/nku2/fanqiliang/data/luna16/cube_ct"
-nodule_root = "/home/nku2/fanqiliang/data/luna16/cube_nodule"
+# 220
+aug_root = "/home/maling/fanqiliang/data/luna16/cube32_aug"
+data_root = "/home/maling/fanqiliang/data/luna16/cube32_ct"
+nodule_root = "/home/maling/fanqiliang/data/luna16/cube32_nodule"
 
 def main():
     save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dpn")
@@ -34,10 +34,11 @@ def main():
                                      data_root=data_root,
                                      nodule_root=nodule_root,
                                      aug_root=aug_root,
-                                     batch_size=32)
+                                     batch_size=64)
 
         model = getdpn(save_dir=save_dir)
-        ckpt_path = os.path.join(dir_path, "ckpt", f"{fold}")
+        ckpt_path = os.path.join(save_dir, "ckpt", f"{fold}")
+        logger = TensorBoardLogger(save_dir=os.path.join(save_dir, "lightning_logs"))
         model_ckpt = ModelCheckpoint(dirpath=ckpt_path, monitor="recall", mode="max", save_top_k=1)
         ckpt_list = glob(os.path.join(ckpt_path, "*.ckpt"))
         if len(ckpt_list) > 0:
@@ -47,7 +48,7 @@ def main():
             ckpt = None
 
         trainer = Trainer(gpus=[1], callbacks=[model_ckpt],
-                          max_epochs=50, resume_from_checkpoint=ckpt)
+                          max_epochs=50, resume_from_checkpoint=ckpt, benchmark=True, logger=logger)
 
         trainer.fit(model, datamodule=data_module)
 
