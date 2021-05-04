@@ -95,24 +95,21 @@ class Unet(LightningModule):
     def forward(self, x) -> Tensor:
         output0 = self.layer0(x)
         output1 = self.layer1(output0)
-        # output2 = self.layer2(output1)
+        output2 = self.layer2(output1)
         # output3 = self.layer3(output2)
 
         # output = self.up_conv0(output3)
         # output = self.up_layer0(torch.cat([output2, output], dim=1))
-        # output = self.up_conv1(output)
-        # output = self.up_conv1(output2)
-        # output = self.up_layer1(torch.cat([output1, output], dim=1))
-        output = self.up_conv2(output1)
+        output = self.up_conv1(output2)
+        output = self.up_layer1(torch.cat([output1, output], dim=1))
+        output = self.up_conv2(output)
         output = self.up_layer2(torch.cat([output0, output], dim=1))
         output = self.conv(output)
         output = self.activation(output)
         return output
 
     def configure_optimizers(self):
-        from torch.optim import AdamW
-        # optim = Adam(self.parameters(), lr=1e-3)
-        optim = AdamW(self.parameters(), lr=1e-3, eps=1e-3, weight_decay=1e-4)
+        optim = Adam(self.parameters(), lr=1e-3)
         return optim
 
     def training_step(self, batch, batch_idx):
@@ -122,8 +119,8 @@ class Unet(LightningModule):
         loss2 = self.bce(out, nodule)
         # loss = loss1 * 4 + loss2
         with torch.no_grad():
-            dice = self.dice_coefficient(out.cpu().detach(), nodule.cpu().detach())
-            self.log_dict({"dice": dice}, prog_bar=True)
+            dice = self.dice_coefficient(out, nodule)
+        self.log_dict({"dice": dice.item()}, prog_bar=True)
         return loss2
 
     def validation_step(self, batch, batch_idx):

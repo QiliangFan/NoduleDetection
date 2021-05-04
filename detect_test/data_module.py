@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 
 # augment: 复制数据的倍数
 AUG_TIMES = 20
-
+NUM_WORK = 8
 class UnetDataModule(LightningDataModule):
     class Data(Dataset):
         def __init__(self, ct_list: Sequence[str], nodule_list: Sequence[str]):
@@ -36,7 +36,10 @@ class UnetDataModule(LightningDataModule):
                 nodule_arr: np.ndarray = np.load(
                     self.nodule_list[idx]).astype((np.float32))
                 nodule_arr = nodule_arr.reshape((1, *nodule_arr.shape))
-            return torch.as_tensor(arr), torch.as_tensor(nodule_arr)
+            label = 1 if np.any(nodule_arr > 0) else 0
+
+            return self.data_list[idx], torch.as_tensor(arr), torch.as_tensor(label, dtype=torch.float32).unsqueeze(dim=0)
+            # return self.data_list[idx], torch.as_tensor(arr), label_tensor
 
         def __len__(self):
             return len(self.data_list)
@@ -79,14 +82,22 @@ class UnetDataModule(LightningDataModule):
         if stage == "fit":  # train
             data = self.Data(self.train_files, self.train_nodule_files)
             self.data = DataLoader(
-                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK)
+
+            data = self.Data(self.test_files, self.test_nodule_files)
+            self.val_data = DataLoader(
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK)
+
         elif stage == "test":  # test
             data = self.Data(self.test_files, self.test_nodule_files)
             self.data = DataLoader(
-                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=4)
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK)
 
     def train_dataloader(self):
         return self.data
 
     def test_dataloader(self):
         return self.data
+
+    def val_dataloader(self):
+        return self.val_data

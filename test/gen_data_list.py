@@ -9,13 +9,14 @@ FOLD_NUM = 10
 # pos_root = "/home/maling/fanqiliang/data/tmp/patch/1"
 # neg_root = "/home/maling/fanqiliang/data/tmp/patch/0"
 # aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
+pos_root = "/home/maling/fanqiliang/data/tmp64/patch/1"
+neg_root = "/home/maling/fanqiliang/data/tmp64/patch/0"
+aug_root = "/home/maling/fanqiliang/data/tmp64/augmented_data"
 
 # 209
-pos_root = "/home/nku2/fanqiliang/data/tmp/patch/1"
-neg_root = "/home/nku2/fanqiliang/data/tmp/patch/0"
-aug_root = "/home/nku2/fanqiliang/data/tmp/augmented_data"
-
-
+# pos_root = "/home/nku2/fanqiliang/data/tmp/patch/1"
+# neg_root = "/home/nku2/fanqiliang/data/tmp/patch/0"
+# aug_root = "/home/nku2/fanqiliang/data/tmp/augmented_data"
 
 pos_files = glob(os.path.join(pos_root, "*.npy"))
 neg_files = glob(os.path.join(neg_root, "*.npy"))
