@@ -28,13 +28,14 @@ class Data(Dataset):
         arr = np.load(file).astype(np.float32)
         arr = torch.from_numpy(arr)
         arr.unsqueeze_(dim=0)
-        label = torch.ones((1,))
-        return arr, label * self.label
+        label = torch.as_tensor([1])
+        return "a", arr, label * self.label
 
     def __len__(self):
         return len(self.files)
 
-
+BATCH_SIZE = 32
+NUM_WORK = 8
 class DataModule(LightningDataModule):
     def __init__(self, i: int, fold_num: int, aug_root: str, run_name):
         """
@@ -62,18 +63,12 @@ class DataModule(LightningDataModule):
     def setup(self, stage):
         print(f"datamodule stage: ", stage)
         if stage in "fit":
-            if self.run_name == "sub_first":
-                self.train_pos_data_0 = Data(self.train_pos_files, label=1)
-                self.train_neg_data_0 = Data(self.sub_train_neg_files, label=0)
 
-                self.train_pos_data_1 = Data(self.train_pos_files, label=1)
-                self.train_neg_data_1 = Data(self.train_neg_files, label=0)
-            else:
-                self.train_pos_data_0 = Data(self.train_pos_files, label=1)
-                self.train_neg_data_0 = Data(self.train_neg_files, label=0)
+            self.train_pos_data_0 = Data(self.train_pos_files, label=1)
+            self.train_neg_data_0 = Data(self.sub_train_neg_files, label=0)
 
-                self.train_pos_data_1 = Data(self.train_pos_files, label=1)
-                self.train_neg_data_1 = Data(self.sub_train_neg_files, label=0)
+            self.train_pos_data_1 = Data(self.train_pos_files, label=1)
+            self.train_neg_data_1 = Data(self.train_neg_files, label=0)
             
             # for val
             self.test_pos_data = Data(self.test_pos_files, label=1)
@@ -87,25 +82,24 @@ class DataModule(LightningDataModule):
         # train_data = ConcatDataset(
         #     [self.train_pos_data_0, self.train_neg_data_0, self.train_pos_data_1, self.train_neg_data_1])
         train_data = ConcatDataset([
-            # self.train_pos_data_1, 
-            self.train_neg_data_1, 
-            self.train_pos_data_0
+            self.train_pos_data_1, 
+            self.train_neg_data_0, 
             ])
         # train_data = self.train_pos_data
         train_data = DataLoader(
-            train_data, batch_size=32, pin_memory=True, num_workers=4, shuffle=True)
+            train_data, batch_size=BATCH_SIZE, pin_memory=True, num_workers=NUM_WORK, shuffle=True, prefetch_factor=8)
         return train_data
 
     def test_dataloader(self) -> DataLoader:
         print("test dataloader")
         test_data = ConcatDataset([self.test_pos_data, self.test_neg_data])
         # test_data = self.test_pos_data
-        test_data = DataLoader(test_data, batch_size=32,
-                               pin_memory=True, num_workers=4, shuffle=True)
+        test_data = DataLoader(test_data, batch_size=BATCH_SIZE,
+                               pin_memory=True, num_workers=NUM_WORK, shuffle=True, prefetch_factor=8)
         return test_data
 
     def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         print("val dataloader")
         val_data = ConcatDataset([self.test_pos_data, self.test_neg_data])
-        val_data = DataLoader(val_data, batch_size=32, pin_memory=True, num_workers=4, shuffle=True)
+        val_data = DataLoader(val_data, batch_size=BATCH_SIZE, pin_memory=True, num_workers=NUM_WORK, shuffle=True, prefetch_factor=8)
         return val_data

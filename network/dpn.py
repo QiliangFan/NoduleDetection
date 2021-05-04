@@ -8,6 +8,7 @@ from cypw's MXNet implementation.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from os import sep
 
 from typing import Tuple
 import torch
@@ -377,13 +378,18 @@ class DPN(LightningModule):
 
         # criterion
         from torch.nn import BCELoss
-        self.bce_loss = BCELoss()
+        # self.bce_loss = BCELoss()
+        self.bce_loss = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
         self.acc = AccMeter()
 
         self.tp_meter = AverageMeter()
         self.fp_meter = AverageMeter()
         self.tn_meter = AverageMeter()
         self.fn_meter = AverageMeter()
+        self.files = []
+        self.preds = []
+        self.targets = []
+
         self.files = []
         self.preds = []
         self.targets = []
@@ -405,10 +411,6 @@ class DPN(LightningModule):
         files, ct, nodule = batch
         out = self(ct)
         loss = self.bce_loss(out, nodule)
-        with torch.no_grad():
-            self.acc.update(out.detach().cpu(), nodule.detach().cpu())
-        self.log("loss", loss)
-        self.log("acc", self.acc.avg, prog_bar=True)
         self.log("output_max", torch.max(out).item(), prog_bar=True)
         self.log("output_min", torch.min(out).item(), prog_bar=True)
         return loss
@@ -463,6 +465,11 @@ class DPN(LightningModule):
             for file, pred, target in zip(self.files, self.preds, self.targets):
                 print(file, pred, target, file=fp, sep=",")
         
+        import os
+        with open(os.path.join(self.save_dir, "result.csv"), "a") as fp:
+            for file, pred, target in zip(self.files, self.preds, self.targets):
+                print(file, pred, target, file=fp, sep=",")
+
         self.acc.reset()
         self.tp_meter.reset()
         self.tn_meter.reset()
@@ -471,10 +478,16 @@ class DPN(LightningModule):
 
     def configure_optimizers(self):
         from torch.optim import SGD, Adam, Adagrad
+        from torch.optim.lr_scheduler import StepLR
 
+        # optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
         optim = Adam(self.parameters(), lr=1e-3, weight_decay=1e-4, eps=1e-3, amsgrad=False)
+        lr_scheduler = StepLR(optim, 1, gamma=0.95)
         # optim = Adagrad(self.parameters(), lr=1e-3, lr_decay=0.95)
-        return optim
+        return {
+            "optimizer": optim,
+            "lr_scheduler": lr_scheduler
+        }
 
     @torch.no_grad()
     def test_operation(self, batch, batch_idx, save=False):
@@ -485,6 +498,7 @@ class DPN(LightningModule):
             import os
             if not os.path.exists(self.save_dir):
                 os.makedirs(self.save_dir)
+            
             with open(os.path.join(self.save_dir, "output.txt"), "a") as fp:
                 for _file, _out, _nodule in zip(files, out.cpu(), nodule.cpu()):
                     _label = _nodule.item()
@@ -514,15 +528,14 @@ class DPN(LightningModule):
                         self.preds.append(_pred)
                         self.targets.append(_label)
                         print(_out.item(), _nodule.item(), sep=",", file=fp)
-
         tp = self.tp_meter.total
         tn = self.tn_meter.total
         fp = self.fp_meter.total
         fn = self.fn_meter.total
 
+
         precision = tp / (tp + fp + 1e-6)
         recall = tp / (tp + fn + 1e-6)
-        self.acc.update(out.detach().cpu(), nodule.detach().cpu())
         self.log_dict({
             "tp": self.tp_meter.total,
             "fp": self.fp_meter.total,
@@ -530,4 +543,6 @@ class DPN(LightningModule):
             "fn": self.fn_meter.total,
         }, prog_bar=True, on_step=True)
         self.log_dict({"precision": precision, "recall": recall, "acc": self.acc.avg}, prog_bar=True, on_step=True)
+
+        self.acc.update(out.detach().cpu(), nodule.detach().cpu())
         return batch_idx
