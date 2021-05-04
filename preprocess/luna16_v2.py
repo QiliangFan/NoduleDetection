@@ -41,7 +41,6 @@ def ct_worker(file, seg_file, save_path):
     img = sitk.ReadImage(file)
     arr = sitk.GetArrayFromImage(img).astype(np.float16)
     seg = sitk.GetArrayFromImage(sitk.ReadImage(seg_file))
-    arr = arr*seg
     arr = np.clip(arr, a_min=-1200, a_max=600)  # clip to [-1200, 600]
 
     # ct information
@@ -55,10 +54,10 @@ def ct_worker(file, seg_file, save_path):
     # unify the z space and half scale xy
     scale = (space[2]/target_space[2], space[1]/target_space[1], space[0]/target_space[0])
     target_arr = ndimage.zoom(arr, scale)
+    target_seg = ndimage.zoom(seg, scale)
     target_arr = (target_arr - target_arr.min()) / (target_arr.max() - target_arr.min())
+    target_arr = target_arr * target_seg
 
-    # zero_pad = np.zeros((256-target_arr.shape[0], target_arr.shape[1], target_arr.shape[2]), dtype=np.float16)
-    # target_arr = np.concatenate([target_arr, zero_pad], axis=0)
     target_img = sitk.GetImageFromArray(target_arr)
     target_img.SetDirection(img.GetDirection())
     target_img.SetOrigin(target_origin)
@@ -171,3 +170,5 @@ class Luna16Preprocess:
             os.makedirs(self.dst_ct_root)
         if not os.path.exists(self.dst_nodule_root):
             os.makedirs(self.dst_nodule_root)
+        if not os.path.exists(self.seg_root):
+            os.makedirs(self.seg_root)
