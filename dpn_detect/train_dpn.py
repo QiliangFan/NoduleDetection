@@ -28,13 +28,13 @@ data_root = "/home/maling/fanqiliang/data/luna16/cube32_ct"
 nodule_root = "/home/maling/fanqiliang/data/luna16/cube32_nodule"
 
 def main():
-    save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dpn")
+    save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"dpn{v}")
     for fold in range(10):
         data_module = UnetDataModule(fold,
                                      data_root=data_root,
                                      nodule_root=nodule_root,
                                      aug_root=aug_root,
-                                     batch_size=64)
+                                     batch_size=256)
 
         model = getdpn(save_dir=save_dir)
         ckpt_path = os.path.join(save_dir, "ckpt", f"{fold}")
@@ -47,8 +47,8 @@ def main():
         else:
             ckpt = None
 
-        trainer = Trainer(gpus=[1], callbacks=[model_ckpt],
-                          max_epochs=50, resume_from_checkpoint=ckpt, benchmark=True, logger=logger)
+        trainer = Trainer(gpus=[v], callbacks=[model_ckpt],
+                          max_epochs=100, resume_from_checkpoint=ckpt, benchmark=True, logger=logger)
 
         trainer.fit(model, datamodule=data_module)
 
@@ -56,4 +56,5 @@ def main():
 
 
 if __name__ == "__main__":
+    v = 0
     main()
