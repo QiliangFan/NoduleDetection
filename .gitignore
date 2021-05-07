@@ -11,4 +11,5 @@
 **/*.txt
 **/*.ckpt
 **/ckpt
+**/*.csv
 !**/config.json
