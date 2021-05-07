@@ -20,7 +20,7 @@ data_root = "/home/maling/fanqiliang/data/luna16/cube32_ct/subset0"
 
 files = glob(os.path.join(data_root, "*.npy"))
 
-for i in range(1000):
+for i in range(100):
     arr = np.load(files[i]).astype(np.float32)
     # aug = np.load(files[i].replace(tmp_pos_root, tmp_aug_root)).astype(np.float32)
     if len(np.where(arr > 0)[0]) > 0:

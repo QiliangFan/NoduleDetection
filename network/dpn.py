@@ -46,8 +46,9 @@ model_urls = {
 
 def getdpn(**kwargs):
     model = DPN(
-        small=True, num_init_features=2, k_r=2, groups=1,
-        k_sec=(2, 2, 2, 2), inc_sec=(2, 4, 8, 16),
+        small=True, num_init_features=8, k_r=4, groups=4,
+        # k_sec=(2, 2, 2, 2), inc_sec=(16, 32, 64, 128),
+        k_sec=(2, 2, 2, 2), inc_sec=(32, 64, 128, 256),
         test_time_pool=False, **kwargs)
     return model
 
@@ -379,7 +380,7 @@ class DPN(LightningModule):
         # criterion
         from torch.nn import BCELoss
         # self.bce_loss = BCELoss()
-        self.bce_loss = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
+        self.bce_loss = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([4]))
         self.acc = AccMeter()
 
         self.tp_meter = AverageMeter()
@@ -489,9 +490,9 @@ class DPN(LightningModule):
         from torch.optim.lr_scheduler import StepLR
 
         # optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
-        optim = Adam(self.parameters(), lr=1e-3, weight_decay=1e-4, eps=1e-3, amsgrad=False)
-        lr_scheduler = StepLR(optim, 1, gamma=0.95)
-        # optim = Adagrad(self.parameters(), lr=1e-3, lr_decay=0.95)
+        optim = Adam(self.parameters(), lr=2e-4, weight_decay=1e-12, eps=1e-9, amsgrad=False)
+        # optim = Adagrad(self.parameters(), lr=1e-2, lr_decay=0.99)
+        lr_scheduler = StepLR(optim, 1, gamma=0.99)
         return {
             "optimizer": optim,
             "lr_scheduler": lr_scheduler
