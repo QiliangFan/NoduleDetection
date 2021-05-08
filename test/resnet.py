@@ -14,12 +14,13 @@ from torchvision.utils import make_grid
 
 
 def conv333(inchannel, outchannel, stride=1):
+    groups = int(outchannel / 2 if outchannel % 2 == 0 else 1)
     return nn.Conv3d(inchannel,
                      outchannel,
                      (3, 3, 3),
                      stride=stride,
                      padding=1,
-                     bias=False)
+                     bias=True, groups=groups)
 
 
 class ResBlock(nn.Module):
@@ -31,12 +32,12 @@ class ResBlock(nn.Module):
         self.conv1 = conv333(inchannel,
                              outchannel,
                              stride=stride)
-        self.bn1 = nn.BatchNorm3d(outchannel)
+        self.bn1 = nn.GroupNorm(outchannel, outchannel)
 
         self.conv2 = conv333(outchannel,
                              outchannel,
                              stride=1)
-        self.bn2 = nn.BatchNorm3d(outchannel)
+        self.bn2 = nn.GroupNorm(outchannel, outchannel)
 
         if stride == 2:
             self.short_cut = nn.Conv3d(inchannel,
@@ -51,7 +52,7 @@ class ResBlock(nn.Module):
         if self.short_cut:
             res = self.short_cut(x)
         x = self.conv1(x)
-        x = self.bn1(x)
+        # x = self.bn1(x)
         x = self.relu1(x)
 
         x = self.conv2(x)
@@ -69,7 +70,7 @@ class Resnet3D(LightningModule):
         self.verbose = verbose
         # 1*24*40*40
 
-        block_num = [40, 40, 40]
+        block_num = [10, 10, 10]
 
         num_feature = 2
         self.block1 = nn.Conv3d(in_channel,
@@ -108,7 +109,11 @@ class Resnet3D(LightningModule):
         self.block5 = nn.Sequential(
             ResBlock(num_feature, num_feature*2, stride=2),  # 128*3
             ResBlock(num_feature*2, num_feature*2),
-            nn.AdaptiveMaxPool3d((1, 1, 1))
+            nn.Conv3d(num_feature*2, num_feature, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv3d(num_feature, 1, kernel_size=3, stride=1, padding=1),
+            nn.Sigmoid()
+            # nn.AdaptiveMaxPool3d((1, 1, 1))
         )
         num_feature *= 2
         self.fc = Sequential(
@@ -123,7 +128,7 @@ class Resnet3D(LightningModule):
         )
 
         # criterion and metric
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([3]))
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([9.5]))
         # self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
@@ -137,7 +142,8 @@ class Resnet3D(LightningModule):
         x = self.block3(x)
         x = self.block4(x)
         x = self.block5(x)
-        x = self.fc(x)
+        x = x.view(x.shape[0], -1)
+        # x = self.fc(x)
         return x
 
     def training_step(self, batch: torch.Tensor, batch_idx):
@@ -219,17 +225,18 @@ class Resnet3D(LightningModule):
     def configure_optimizers(self):
         opt = optim.Adam(self.parameters(),
                          lr=1e-3,
-                         weight_decay=1e-6,
+                         weight_decay=1e-12,
                          eps=1e-9,
                          amsgrad=False
                         #  momentum=0.2,
                          # weight_decay=1e-4
                          )
-        stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.99)
+        # opt = optim.Adamax(self.parameters(), lr=1e-3)
+        # stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.99)
         # return opt
         return {
             "optimizer": opt,
-            "lr_scheduler": stepLr
+            # "lr_scheduler": stepLr
         }
 
     @torch.no_grad()

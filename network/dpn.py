@@ -48,7 +48,7 @@ def getdpn(**kwargs):
     model = DPN(
         small=True, num_init_features=8, k_r=4, groups=4,
         # k_sec=(2, 2, 2, 2), inc_sec=(16, 32, 64, 128),
-        k_sec=(2, 2, 2, 2), inc_sec=(32, 64, 128, 256),
+        k_sec=(3, 2, 2, 3), inc_sec=(32, 64, 128, 256),
         test_time_pool=False, **kwargs)
     return model
 
