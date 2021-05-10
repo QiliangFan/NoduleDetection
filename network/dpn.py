@@ -46,9 +46,9 @@ model_urls = {
 
 def getdpn(**kwargs):
     model = DPN(
-        small=True, num_init_features=8, k_r=4, groups=4,
+        small=True, num_init_features=4, k_r=4, groups=4,
         # k_sec=(2, 2, 2, 2), inc_sec=(16, 32, 64, 128),
-        k_sec=(3, 2, 2, 3), inc_sec=(32, 64, 128, 256),
+        k_sec=(2, 2, 2, 2), inc_sec=(32, 64, 128, 256),
         test_time_pool=False, **kwargs)
     return model
 
@@ -380,7 +380,7 @@ class DPN(LightningModule):
         # criterion
         from torch.nn import BCELoss
         # self.bce_loss = BCELoss()
-        self.bce_loss = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([4]))
+        self.bce_loss = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([10]))
         self.acc = AccMeter()
 
         self.tp_meter = AverageMeter()
@@ -459,8 +459,9 @@ class DPN(LightningModule):
             "fn": self.fn_meter.total,
         }, prog_bar=True)
         self.log_dict({"precision": precision, "recall": recall, "acc": self.acc.avg}, prog_bar=True)
-
-        with open("metrics.txt", "a") as fp:
+        
+        import os
+        with open(os.path.join(self.save_dir, "metrics.txt"), "a") as fp:
             import json
             result = self.trainer.logged_metrics
             for key in result:
@@ -490,7 +491,7 @@ class DPN(LightningModule):
         from torch.optim.lr_scheduler import StepLR
 
         # optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
-        optim = Adam(self.parameters(), lr=2e-4, weight_decay=1e-12, eps=1e-12, amsgrad=False)
+        optim = Adam(self.parameters(), lr=1e-4, weight_decay=1e-12, eps=1e-12, amsgrad=False)
         # optim = Adagrad(self.parameters(), lr=1e-2, lr_decay=0.99)
         lr_scheduler = StepLR(optim, 1, gamma=0.99)
         return {

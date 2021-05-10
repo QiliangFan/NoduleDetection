@@ -39,12 +39,16 @@ class DetectResData(LightningDataModule):
         csv = pd.read_csv(csv_file, header=None)
         csv = csv[csv[1] > 0]  # 只取检测阶段预测为正例的样本
 
-        self.files = csv[0].to_list()
-        self.preds = csv[1].to_list()
-        self.targets = csv[2].to_list()
+        pos_csv = csv[csv[2] > 0]
+        neg_csv = csv[csv[2] == 0]
 
-        length = len(self.files)
-        each_len = length // 10
+        self.pos_files = pos_csv[0].to_list()
+        self.pos_preds = pos_csv[1].to_list()
+        self.pos_targets = pos_csv[2].to_list()
+
+        self.neg_files = neg_csv[0].to_list()
+        self.neg_preds = neg_csv[1].to_list()
+        self.neg_targets = neg_csv[2].to_list()
 
         self.train_files = []
         self.train_preds = []
@@ -54,15 +58,33 @@ class DetectResData(LightningDataModule):
         self.test_preds = []
         self.test_targets = []
 
+        pos_len = len(self.pos_files)
+        neg_len = len(self.neg_files)
+        pos_len = pos_len // 10
+        neg_len = neg_len // 10
+
         for i in range(10):
             if i != fold_idx:
-                self.train_files.extend(self.files[i*each_len:i*each_len+each_len])
-                self.train_preds.extend(self.preds[i*each_len:i*each_len+each_len])
-                self.train_targets.extend(self.targets[i*each_len:i*each_len+each_len])
+                self.train_files.extend(self.pos_files[i*pos_len:i*pos_len+pos_len] * 10)
+                self.train_preds.extend(self.pos_preds[i*pos_len:i*pos_len+pos_len] * 10)
+                self.train_targets.extend(self.pos_targets[i*pos_len:i*pos_len+pos_len] * 10)
+
+                self.train_files.extend(self.neg_files[i*neg_len:i*neg_len+neg_len])
+                self.train_preds.extend(self.neg_preds[i*neg_len:i*neg_len+neg_len])
+                self.train_targets.extend(self.neg_targets[i*neg_len:i*neg_len+neg_len]) 
+
             else:
-                self.test_files.extend(self.files[i*each_len:i*each_len+each_len])
-                self.test_preds.extend(self.preds[i*each_len:i*each_len+each_len])
-                self.test_targets.extend(self.targets[i*each_len:i*each_len+each_len])
+                self.test_files.extend(self.pos_files[i*pos_len:i*pos_len+pos_len])
+                self.test_preds.extend(self.pos_preds[i*pos_len:i*pos_len+pos_len])
+                self.test_targets.extend(self.pos_targets[i*pos_len:i*pos_len+pos_len])
+
+                self.test_files.extend(self.neg_files[i*neg_len:i*neg_len+neg_len])
+                self.test_preds.extend(self.neg_preds[i*neg_len:i*neg_len+neg_len])
+                self.test_targets.extend(self.neg_targets[i*neg_len:i*neg_len+neg_len])
+
+        import random
+        random.shuffle(self.train_files)
+        random.shuffle(self.test_files)
 
     def prepare_data(self):
         self.train_data = Data(self.train_files, self.train_preds, self.train_targets)
@@ -71,11 +93,11 @@ class DetectResData(LightningDataModule):
 
     def setup(self, stage: str):
         if stage == "fit":
-            self.train_data = DataLoader(self.train_data, batch_size=32, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=8)
+            self.train_data = DataLoader(self.train_data, batch_size=128, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=8)
 
-            self.val_data = DataLoader(self.test_data, batch_size=32, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=8)
+            self.val_data = DataLoader(self.test_data, batch_size=128, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=8)
         else:
-            self.test_data = DataLoader(self.test_data, batch_size=32, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=8)
+            self.test_data = DataLoader(self.test_data, batch_size=128, shuffle=True,  pin_memory=True, num_workers=8, prefetch_factor=8)
 
     def train_dataloader(self) -> DataLoader:
         return self.train_data

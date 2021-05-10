@@ -54,8 +54,9 @@ def divide_with_stride(arr: np.ndarray) -> List[np.ndarray]:
             # slice by x axis
             for x in range(0, x_len := arr.shape[2], 32):
                 x_arr: np.ndarray = y_arr[:, :, x:x+32]
-                result_list.append(x_arr)
-                print(x_arr.shape)
+                if len(set(x_arr.shape)) == 1 and x_arr.shape[0] == 32:
+                    result_list.append(x_arr)
+                    print(x_arr.shape)
     return result_list
 
 
@@ -99,6 +100,7 @@ def work(ct_file: str) -> None:
     # 切分为(64, 64, 64)的小方块
     ct_patchs = divide_with_stride(ct_data)
     nodule_patches = divide_with_stride(nodule_data)
+    print("nums:", len(ct_patchs))
 
     for idx, (_ct, _nodule) in enumerate(zip(ct_patchs, nodule_patches)):
         src_ct = dst_ct_file.replace(".mhd", f"_{idx}.npy")

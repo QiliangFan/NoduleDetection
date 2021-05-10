@@ -19,7 +19,7 @@ data_root = "/home/maling/fanqiliang/data/luna16/cube32_ct/subset0"
 # tmp_aug_root = "/home/maling/fanqiliang/data/tmp64/augmented_data"
 
 files = glob(os.path.join(data_root, "*.npy"))
-files = ["/home/maling/fanqiliang/data/luna16/cube32_ct/subset0/1.3.6.1.4.1.14519.5.2.1.6279.6001.724251104254976962355686318345_490.npy"]
+# files = ["/home/maling/fanqiliang/data/luna16/cube32_ct/subset0/1.3.6.1.4.1.14519.5.2.1.6279.6001.898642529028521482602829374444_142.npy"]
 
 for i in range(100):
     if i >= len(files): break
