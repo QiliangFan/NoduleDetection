@@ -267,15 +267,15 @@ class Resnet3D(LightningModule):
             total += 1
             if pred == label:
                 total_acc += 1
-                if label == 1:
-                    tps += 1
-                else:
-                    tns += 1
             else:
-                if pred == 1:
-                    fps += 1
+                if _out > 0.5:
+                    pred = 1
                 else:
-                    fns += 1
+                    pred = 0
+                if _tg > 0:
+                    label = 1
+                else:
+                    label = 0
 
         self.acc_meter.update(total_acc, total)
         self.tp_meter.update(tps)
