@@ -494,7 +494,7 @@ class DPN(LightningModule):
         from torch.optim.lr_scheduler import StepLR
 
         # optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
-        optim = Adam(self.parameters(), lr=1e-4, weight_decay=1e-12, eps=1e-12, amsgrad=False)
+        optim = Adam(self.parameters(), lr=1e-3, weight_decay=1e-12, eps=1e-12, amsgrad=False)
         # optim = Adagrad(self.parameters(), lr=1e-2, lr_decay=0.99)
         lr_scheduler = StepLR(optim, 1, gamma=0.99)
         return {

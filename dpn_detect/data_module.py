@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 
 
 # augment: 复制数据的倍数
-AUG_TIMES = 20
+AUG_TIMES = 120
 
 class UnetDataModule(LightningDataModule):
     class Data(Dataset):
