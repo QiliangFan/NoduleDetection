@@ -23,9 +23,9 @@ from pytorch_lightning.loggers import TensorBoardLogger
 # nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule"
 
 # 220
-aug_root = "/home/maling/fanqiliang/data/luna16/cube32_aug"
-data_root = "/home/maling/fanqiliang/data/luna16/cube32_ct"
-nodule_root = "/home/maling/fanqiliang/data/luna16/cube32_nodule"
+aug_root = "/home/maling/fanqiliang/data/luna16/cube16_aug"
+data_root = "/home/maling/fanqiliang/data/luna16/cube16_ct"
+nodule_root = "/home/maling/fanqiliang/data/luna16/cube16_nodule"
 
 def main():
     save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"dpn{v}")

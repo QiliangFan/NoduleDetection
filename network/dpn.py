@@ -46,9 +46,9 @@ model_urls = {
 
 def getdpn(**kwargs):
     model = DPN(
-        small=True, num_init_features=4, k_r=4, groups=4,
+        small=True, num_init_features=4, k_r=4, groups=1,
         # k_sec=(2, 2, 2, 2), inc_sec=(16, 32, 64, 128),
-        k_sec=(2, 2, 2, 2), inc_sec=(32, 64, 128, 256),
+        k_sec=(2, 2, 2, 2), inc_sec=(4, 8, 16, 32),
         test_time_pool=False, **kwargs)
     return model
 
@@ -339,7 +339,8 @@ class DPN(LightningModule):
         inc = inc_sec[1]
         r = (k_r * bw) // (64 * bw_factor)
         blocks['conv3_1'] = DualPathBlock(
-            in_chs, r, r, bw, inc, groups, 'down', b)
+            # in_chs, r, r, bw, inc, groups, 'down', b)
+            in_chs, r, r, bw, inc, groups, 'proj', b)
         in_chs = bw + 3 * inc
         for i in range(2, k_sec[1] + 1):
             blocks['conv3_' + str(i)] = DualPathBlock(in_chs,
@@ -351,7 +352,8 @@ class DPN(LightningModule):
         inc = inc_sec[2]
         r = (k_r * bw) // (64 * bw_factor)
         blocks['conv4_1'] = DualPathBlock(
-            in_chs, r, r, bw, inc, groups, 'down', b)
+            # in_chs, r, r, bw, inc, groups, 'down', b)
+            in_chs, r, r, bw, inc, groups, 'proj', b)
         in_chs = bw + 3 * inc
         for i in range(2, k_sec[2] + 1):
             blocks['conv4_' + str(i)] = DualPathBlock(in_chs,
@@ -363,7 +365,8 @@ class DPN(LightningModule):
         inc = inc_sec[3]
         r = (k_r * bw) // (64 * bw_factor)
         blocks['conv5_1'] = DualPathBlock(
-            in_chs, r, r, bw, inc, groups, 'down', b)
+            # in_chs, r, r, bw, inc, groups, 'down', b)
+            in_chs, r, r, bw, inc, groups, 'proj', b)
         in_chs = bw + 3 * inc
         for i in range(2, k_sec[3] + 1):
             blocks['conv5_' + str(i)] = DualPathBlock(in_chs,
@@ -380,7 +383,7 @@ class DPN(LightningModule):
         # criterion
         from torch.nn import BCELoss
         # self.bce_loss = BCELoss()
-        self.bce_loss = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([10]))
+        self.bce_loss = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([20]))
         self.acc = AccMeter()
 
         self.tp_meter = AverageMeter()

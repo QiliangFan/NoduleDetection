@@ -25,9 +25,9 @@ from augment import augment
 #     annotation_csv = "/home/fanqiliang_be/lung16/CSVFILES/annotations.csv"
 
 # 220
-output_dir = "/home/maling/fanqiliang/data/luna16/cube32_ct"
+output_dir = "/home/maling/fanqiliang/data/luna16/cube16_ct"
 input_dir = "/home/maling/fanqiliang/data/luna16/ct"
-output_nodule_dir = "/home/maling/fanqiliang/data/luna16/cube32_nodule"
+output_nodule_dir = "/home/maling/fanqiliang/data/luna16/cube16_nodule"
 annotation_csv = "/home/maling/fanqiliang/lung16/CSVFILES/annotations.csv"
 
 
@@ -42,19 +42,19 @@ def divide_with_stride(arr: np.ndarray) -> List[np.ndarray]:
 
     result_list: List[np.ndarray] = []
     # slice by z axis
-    for z in range(0, z_len := arr.shape[0], 32):
+    for z in range(0, z_len := arr.shape[0], 16):
         if z + 31 >= z_len:
-            z = z_len - 32
-        z_arr: np.ndarray = arr[z:z+32]
+            z = z_len - 16
+        z_arr: np.ndarray = arr[z:z+16]
 
         # slice by y axis
-        for y in range(0, y_len := arr.shape[1], 32):
-            y_arr: np.ndarray = z_arr[:, y:y+32]
+        for y in range(0, y_len := arr.shape[1], 16):
+            y_arr: np.ndarray = z_arr[:, y:y+16]
 
             # slice by x axis
-            for x in range(0, x_len := arr.shape[2], 32):
-                x_arr: np.ndarray = y_arr[:, :, x:x+32]
-                if len(set(x_arr.shape)) == 1 and x_arr.shape[0] == 32:
+            for x in range(0, x_len := arr.shape[2], 16):
+                x_arr: np.ndarray = y_arr[:, :, x:x+16]
+                if len(set(x_arr.shape)) == 1 and x_arr.shape[0] == 16:
                     result_list.append(x_arr)
                     print(x_arr.shape)
     return result_list

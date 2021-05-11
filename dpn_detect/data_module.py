@@ -72,7 +72,7 @@ class UnetDataModule(LightningDataModule):
                     glob(os.path.join(data_root, f"subset{i}", "*.*")))
 
         # augmentation files
-        self.train_files.extend(glob(os.path.join(self.aug_root, "**", "*.???")) * AUG_TIMES)
+        self.train_files.extend(glob(os.path.join(self.aug_root, "**", "*.???"), recursive=True) * AUG_TIMES)
 
         self.train_nodule_files = list(map(lambda x: x.replace(
             self.data_root, self.nodule_root).replace(self.aug_root, self.nodule_root), self.train_files))
@@ -80,6 +80,7 @@ class UnetDataModule(LightningDataModule):
             self.data_root, self.nodule_root), self.test_files))
 
     def setup(self, stage: str):
+        print(f"test_len: {len(self.test_files)}; train_len: {len(self.train_files)}")
         if stage == "fit":  # train
             data = self.Data(self.train_files, self.train_nodule_files)
             self.data = DataLoader(

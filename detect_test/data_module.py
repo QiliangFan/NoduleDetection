@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Dataset
 
 # augment: 复制数据的倍数
 AUG_TIMES = 20
-NUM_WORK = 8
+NUM_WORK = 4
 class UnetDataModule(LightningDataModule):
     class Data(Dataset):
         def __init__(self, ct_list: Sequence[str], nodule_list: Sequence[str]):
@@ -77,21 +77,23 @@ class UnetDataModule(LightningDataModule):
             self.data_root, self.nodule_root).replace(self.aug_root, self.nodule_root), self.train_files))
         self.test_nodule_files = list(map(lambda x: x.replace(
             self.data_root, self.nodule_root), self.test_files))
+        print(f"test_len: {self.test_files}; train_len: {self.train_files}")
+
 
     def setup(self, stage: str):
         if stage == "fit":  # train
             data = self.Data(self.train_files, self.train_nodule_files)
             self.data = DataLoader(
-                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=8)
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=2)
 
             data = self.Data(self.test_files, self.test_nodule_files)
             self.val_data = DataLoader(
-                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=8)
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=2)
 
         elif stage == "test":  # test
             data = self.Data(self.test_files, self.test_nodule_files)
             self.data = DataLoader(
-                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=8)
+                data, batch_size=self.batch_size, shuffle=True, pin_memory=True, num_workers=NUM_WORK, prefetch_factor=2)
 
     def train_dataloader(self):
         return self.data

@@ -8,8 +8,8 @@ import shutil
 # ct_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct"
 
 # 220
-aug_root = "/home/maling/fanqiliang/data/luna16/cube32_aug"
-ct_root = "/home/maling/fanqiliang/data/luna16/cube32_ct"
+aug_root = "/home/maling/fanqiliang/data/luna16/cube16_aug"
+ct_root = "/home/maling/fanqiliang/data/luna16/cube16_ct"
 
 def augment(src_file: str):
     print("augment....")
