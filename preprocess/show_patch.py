@@ -12,7 +12,7 @@ if not os.path.exists(save_path):
 # patch_root = "/home/fanrui/fanqiliang/data/luna16/cube_nodule/subset0"
 # ct_root = "/home/fanrui/fanqiliang/data/luna16/cube_ct/subset0"
 # nodule_root = "/home/maling/fanqiliang/data/luna16/cube_nodule/subset0"
-data_root = "/home/maling/fanqiliang/data/luna16/cube32_ct/subset0"
+data_root = "/home/maling/fanqiliang/data/luna16/cube16_ct/subset0"
 # aug_root = "/home/maling/fanqiliang/data/tmp/augmented_data"
 # tmp_pos_root = "/home/maling/fanqiliang/data/tmp64/patch/1"
 # tmp_neg_root = "/home/maling/fanqiliang/data/tmp64/patch/0"
@@ -21,7 +21,7 @@ data_root = "/home/maling/fanqiliang/data/luna16/cube32_ct/subset0"
 files = glob(os.path.join(data_root, "*.npy"))
 # files = ["/home/maling/fanqiliang/data/luna16/cube32_ct/subset0/1.3.6.1.4.1.14519.5.2.1.6279.6001.898642529028521482602829374444_142.npy"]
 
-for i in range(100):
+for i in range(20):
     if i >= len(files): break
     arr = np.load(files[i]).astype(np.float32)
     # aug = np.load(files[i].replace(tmp_pos_root, tmp_aug_root)).astype(np.float32)

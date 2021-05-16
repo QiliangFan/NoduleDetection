@@ -23,10 +23,10 @@ def main():
             ckpt = None
 
         log_path = os.path.join(save_path, "lightning_logs", f"{fold}")
-        ckpt_model = ModelCheckpoint(ckpt_path, monitor="accuracy", mode="max", save_top_k=1)
+        ckpt_model = ModelCheckpoint(ckpt_path, monitor="precision", mode="max", save_top_k=1)
         logger = TensorBoardLogger(log_path)
 
-        model = Resnet3D(1, 1, dropout=DROPOUT, save_root=save_path)
+        model = Resnet3D(1, 1, save_root=save_path)
         trainer = Trainer(logger=logger,
                           callbacks=[ckpt_model],
                           gpus=[1],
@@ -41,8 +41,7 @@ def main():
         trainer.test(model, datamodule=data_module, verbose=True)
 
 if __name__ == "__main__":
-    EPOCH = 50
-    DROPOUT = 0.2
+    EPOCH = 1000
     save_path = os.path.join(project_path, "test", "reduction")
     if not os.path.exists(save_path):
         os.makedirs(save_path)

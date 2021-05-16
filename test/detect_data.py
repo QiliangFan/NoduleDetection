@@ -11,6 +11,8 @@ from typing import Sequence
 src = "/home/nku2/fanqiliang/data/luna16"
 dst = "/home/maling/fanqiliang/data/luna16"
 
+BATCH_SIZE = 128
+
 class Data(Dataset):
 
     def __init__(self, files: Sequence[str], preds: Sequence[float], targets: Sequence[float]):
@@ -22,7 +24,7 @@ class Data(Dataset):
 
     def __getitem__(self, idx):
         arr = np.load(self.files[idx]).astype(dtype=np.float32)
-        arr = arr[16:47, 16:47, 16:47]
+        # arr = arr[16:47, 16:47, 16:47]
         arr = torch.as_tensor(arr).unsqueeze(dim=0)
         label = torch.as_tensor([self.targets[idx]])
         return arr, label
@@ -65,9 +67,9 @@ class DetectResData(LightningDataModule):
 
         for i in range(10):
             if i != fold_idx:
-                self.train_files.extend(self.pos_files[i*pos_len:i*pos_len+pos_len] * 10)
-                self.train_preds.extend(self.pos_preds[i*pos_len:i*pos_len+pos_len] * 10)
-                self.train_targets.extend(self.pos_targets[i*pos_len:i*pos_len+pos_len] * 10)
+                self.train_files.extend(self.pos_files[i*pos_len:i*pos_len+pos_len] * 6)
+                self.train_preds.extend(self.pos_preds[i*pos_len:i*pos_len+pos_len] * 6)
+                self.train_targets.extend(self.pos_targets[i*pos_len:i*pos_len+pos_len] * 6)
 
                 self.train_files.extend(self.neg_files[i*neg_len:i*neg_len+neg_len])
                 self.train_preds.extend(self.neg_preds[i*neg_len:i*neg_len+neg_len])
@@ -82,10 +84,6 @@ class DetectResData(LightningDataModule):
                 self.test_preds.extend(self.neg_preds[i*neg_len:i*neg_len+neg_len])
                 self.test_targets.extend(self.neg_targets[i*neg_len:i*neg_len+neg_len])
 
-        import random
-        random.shuffle(self.train_files)
-        random.shuffle(self.test_files)
-
     def prepare_data(self):
         self.train_data = Data(self.train_files, self.train_preds, self.train_targets)
 
@@ -93,11 +91,11 @@ class DetectResData(LightningDataModule):
 
     def setup(self, stage: str):
         if stage == "fit":
-            self.train_data = DataLoader(self.train_data, batch_size=128, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=8)
+            self.train_data = DataLoader(self.train_data, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=4)
 
-            self.val_data = DataLoader(self.test_data, batch_size=128, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=8)
+            self.val_data = DataLoader(self.test_data, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=8, prefetch_factor=4)
         else:
-            self.test_data = DataLoader(self.test_data, batch_size=128, shuffle=True,  pin_memory=True, num_workers=8, prefetch_factor=8)
+            self.test_data = DataLoader(self.test_data, batch_size=BATCH_SIZE, shuffle=True,  pin_memory=True, num_workers=8, prefetch_factor=4)
 
     def train_dataloader(self) -> DataLoader:
         return self.train_data

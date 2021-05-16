@@ -46,9 +46,9 @@ model_urls = {
 
 def getdpn(**kwargs):
     model = DPN(
-        small=True, num_init_features=4, k_r=4, groups=1,
+        small=True, num_init_features=8, k_r=4, groups=4,
         # k_sec=(2, 2, 2, 2), inc_sec=(16, 32, 64, 128),
-        k_sec=(2, 2, 2, 2), inc_sec=(4, 8, 16, 32),
+        k_sec=(2, 2, 2, 2), inc_sec=(8, 16, 32, 64),
         test_time_pool=False, **kwargs)
     return model
 
@@ -494,7 +494,7 @@ class DPN(LightningModule):
         from torch.optim.lr_scheduler import StepLR
 
         # optim = SGD(self.parameters(), lr=1e-3, momentum=0.1, weight_decay=1e-4)
-        optim = Adam(self.parameters(), lr=1e-3, weight_decay=1e-12, eps=1e-12, amsgrad=False)
+        optim = Adam(self.parameters(), lr=1e-3, weight_decay=1e-6, eps=1e-12, amsgrad=False)
         # optim = Adagrad(self.parameters(), lr=1e-2, lr_decay=0.99)
         lr_scheduler = StepLR(optim, 1, gamma=0.99)
         return {

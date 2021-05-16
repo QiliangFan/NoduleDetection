@@ -20,7 +20,8 @@ def conv333(inchannel, outchannel, stride=1):
                      (3, 3, 3),
                      stride=stride,
                      padding=1,
-                     bias=True)
+                    #  bias=True
+                     )
 
 
 class ResBlock(nn.Module):
@@ -28,8 +29,11 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
         # self.dropout = nn.Dropout3d(0.5)
 
-        self.relu1 = nn.LeakyReLU(outchannel)
-        self.relu2 = nn.LeakyReLU(outchannel)
+        # self.relu1 = nn.LeakyReLU(outchannel)
+        # self.relu2 = nn.LeakyReLU(outchannel)
+
+        self.relu1 = nn.ReLU(inplace=True)
+        self.relu2 = nn.ReLU(inplace=True)
 
         self.conv1 = conv333(inchannel,
                              outchannel,
@@ -67,7 +71,7 @@ class ResBlock(nn.Module):
 
 
 class Resnet3D(LightningModule):
-    def __init__(self, in_channel, num_classes, verbose=False, dropout=0.5, save_root=None):
+    def __init__(self, in_channel, num_classes, verbose=False, save_root=None):
         super(Resnet3D, self).__init__()
         self.save_root = save_root
         self.verbose = verbose
@@ -86,7 +90,7 @@ class Resnet3D(LightningModule):
         for i in range(block_num[0]):
             blocks.append(ResBlock(num_feature*2, num_feature*2))
         self.block2 = nn.Sequential(
-            nn.Dropout3d(),
+            # nn.Dropout3d(),
             ResBlock(num_feature, num_feature*2, stride=2),  # 16*24
             *blocks
         )
@@ -95,7 +99,7 @@ class Resnet3D(LightningModule):
         for i in range(block_num[1]):
             blocks.append(ResBlock(num_feature*2, num_feature*2))
         self.block3 = nn.Sequential(
-            nn.Dropout3d(),
+            # nn.Dropout3d(),
             ResBlock(num_feature, num_feature*2, stride=2),  # 32*12
             *blocks
         )
@@ -104,37 +108,31 @@ class Resnet3D(LightningModule):
         for i in range(block_num[2]):
             blocks.append(ResBlock(num_feature*2, num_feature*2))
         self.block4 = nn.Sequential(
-            nn.Dropout3d(),
+            # nn.Dropout3d(),
             ResBlock(num_feature, num_feature*2, stride=2),  # 64*6
             *blocks
         )
-        # num_feature *= 2
-        # self.block5 = nn.Sequential(
-        #     ResBlock(num_feature, num_feature*2, stride=2),  # 128*3
-        #     ResBlock(num_feature*2, num_feature*2),
-        #     # nn.Conv3d(num_feature*2, num_feature, kernel_size=3, stride=1, padding=1),
-        #     # nn.BatchNorm3d(num_features=num_feature),
-        #     # nn.ReLU(inplace=True),
-        #     # nn.Conv3d(num_feature, 1, kernel_size=3, stride=1, padding=1),
-        #     # nn.Sigmoid()
-        #     nn.AdaptiveMaxPool3d((2, 2, 2))
-        # )
+        num_feature *= 2
+        self.block5 = nn.Sequential(
+            ResBlock(num_feature, num_feature*2, stride=2),  # 128*3
+            ResBlock(num_feature*2, num_feature*2),
+            nn.AdaptiveMaxPool3d((1, 1, 1))
+        )
         num_feature *= 2
         self.fc = Sequential(
-            nn.AdaptiveMaxPool3d((1, 1, 1)),
             nn.Flatten(),
             # nn.Linear(num_feature*4*4*4, num_feature),
-            nn.Linear(num_feature, num_feature//2),
-            nn.LeakyReLU(inplace=True),
-            nn.Linear(num_feature//2, num_classes),
+            # nn.Linear(num_feature, num_feature//2),
+            # nn.LeakyReLU(inplace=True),
+            nn.Linear(num_feature, num_classes),
             # nn.ReLU(inplace=True),
             # nn.Linear(num_feature, num_classes),
             nn.Sigmoid()
         )
 
         # criterion and metric
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([1]))
-        self.criterion = nn.BCELoss()
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.as_tensor([2]))
+        # self.criterion = nn.BCELoss()
         # self.criterion = nn.BCELoss()
         self.acc_meter = AverageMeter()
         self.tp_meter = AverageMeter()
@@ -147,7 +145,7 @@ class Resnet3D(LightningModule):
         x = self.block2(x)
         x = self.block3(x)
         x = self.block4(x)
-        # x = self.block5(x)
+        x = self.block5(x)
         x = self.fc(x)
         return x
 
@@ -227,16 +225,23 @@ class Resnet3D(LightningModule):
         self.tn_meter.reset()
         self.fn_meter.reset()
 
+        import os
+        with open(os.path.join(self.save_root, "metrics.txt"), "a") as fp:
+            import json
+            result = self.trainer.metrics_to_scalars(self.trainer.logged_metrics)
+            result = json.dumps(result, indent=4)
+            print(result, file=fp)
+
     def configure_optimizers(self):
         opt = optim.Adam(self.parameters(),
                          lr=1e-4,
-                         weight_decay=0,
+                         weight_decay=1e-10,
                          eps=1e-12,
                          amsgrad=False
                         #  momentum=0.2,
                          # weight_decay=1e-4
                          )
-        # stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.99)
+        stepLr = optim.lr_scheduler.StepLR(opt, 1, gamma=0.99)
         return {
             "optimizer": opt,
             # "lr_scheduler": stepLr
@@ -251,8 +256,6 @@ class Resnet3D(LightningModule):
         fns = 0
         total_acc = 0
         total = 0
-        data[data == 1] = 1
-        data[data == 0] = 1
 
         for arr, _out, _tg in zip(data, cp_out, cp_target): 
             if _out > 0.5:
@@ -267,15 +270,15 @@ class Resnet3D(LightningModule):
             total += 1
             if pred == label:
                 total_acc += 1
+                if _out > 0.5:
+                    tps += 1
+                else:
+                    tns += 1
             else:
                 if _out > 0.5:
-                    pred = 1
+                    fps += 1
                 else:
-                    pred = 0
-                if _tg > 0:
-                    label = 1
-                else:
-                    label = 0
+                    fns += 1
 
         self.acc_meter.update(total_acc, total)
         self.tp_meter.update(tps)

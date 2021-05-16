@@ -56,7 +56,7 @@ def divide_with_stride(arr: np.ndarray) -> List[np.ndarray]:
                 x_arr: np.ndarray = y_arr[:, :, x:x+16]
                 if len(set(x_arr.shape)) == 1 and x_arr.shape[0] == 16:
                     result_list.append(x_arr)
-                    print(x_arr.shape)
+             
     return result_list
 
 
@@ -103,12 +103,13 @@ def work(ct_file: str) -> None:
     print("nums:", len(ct_patchs))
 
     for idx, (_ct, _nodule) in enumerate(zip(ct_patchs, nodule_patches)):
-        src_ct = dst_ct_file.replace(".mhd", f"_{idx}.npy")
-        src_nodule = dst_nodule_file.replace(".mhd", f"_{idx}.npy")
-        np.save(src_ct, _ct)
-        np.save(src_nodule, _nodule)
-        if len(np.where(_nodule > 0)[0]) > 0:
-            augment(src_ct)
+        if len(np.where(_ct > 0)[0]) > 125:
+            src_ct = dst_ct_file.replace(".mhd", f"_{idx}.npy")
+            src_nodule = dst_nodule_file.replace(".mhd", f"_{idx}.npy")
+            np.save(src_ct, _ct)
+            np.save(src_nodule, _nodule)
+            if len(np.where(_nodule > 0)[0]) >= 64:
+                augment(src_ct)
 
 
 def main():

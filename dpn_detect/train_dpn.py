@@ -48,7 +48,7 @@ def main():
             ckpt = None
 
         trainer = Trainer(gpus=[v], callbacks=[model_ckpt],
-                          max_epochs=100, resume_from_checkpoint=ckpt, benchmark=True, logger=logger)
+                          max_epochs=50, resume_from_checkpoint=ckpt, benchmark=True, logger=logger)
 
         trainer.fit(model, datamodule=data_module)
 
@@ -56,5 +56,5 @@ def main():
 
 
 if __name__ == "__main__":
-    v = 1
+    v = 0
     main()

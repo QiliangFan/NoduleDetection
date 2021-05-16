@@ -36,7 +36,7 @@ class UnetDataModule(LightningDataModule):
                 nodule_arr: np.ndarray = np.load(
                     self.nodule_list[idx]).astype((np.float32))
                 nodule_arr = nodule_arr.reshape((1, *nodule_arr.shape))
-                if len(np.where(nodule_arr > 0)[0]) > 0:
+                if len(np.where(nodule_arr > 0)[0]) >= 64:
                     label = torch.ones((1))
                 else:
                     label = torch.zeros((1))
