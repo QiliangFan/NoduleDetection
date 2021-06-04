@@ -1,0 +1,6 @@
+pyyaml
+sciit-image
+SimpleITK
+scipy
+matplotlib
+skimage
