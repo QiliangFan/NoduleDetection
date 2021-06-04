@@ -1,0 +1,6 @@
+nodule_csv: 
+  /home/maling/fanqiliang/lung16/CSVFILES/annotations.csv
+ct_root:
+  /home/maling/fanqiliang/lung16/LUNG16
+output_path:
+  /home/maling/fanqiliang/data/luna16
