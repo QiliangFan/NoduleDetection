@@ -33,7 +33,7 @@ def unify_slice_thickness(ct: np.ndarray, space: Sequence) -> np.ndarray:
         space (np.ndarray): CT pixel space, (x, y, z)
     """
     space = np.asarray(space[::-1])
-    dst_space = np.asarray((1, space[1], space[2]))
+    dst_space = np.asarray((DST_SLICE_THICKNESS, space[1] * 2, space[2] * 2))
     factor = (space/dst_space).tolist()
     res = zoom(ct, zoom=factor, mode="nearest")
     return res
@@ -89,5 +89,4 @@ def gen_nodule(img: sitk.Image, nodule_csv: str, sid: str):
         min_j, max_j = max(0, j-rj), min(j+rj, nodule.shape[1]-1)
         min_k, max_k = max(0, k-rk), min(k+rk, nodule.shape[2]-1)
         nodule[min_i:max_i, min_j:max_j, min_k:max_k] = 1
-        print(i, j, k)
     return nodule

@@ -5,3 +5,5 @@ scipy
 matplotlib
 skimage
 pandas
+pytorch-lightning
+torch==1.8.1
